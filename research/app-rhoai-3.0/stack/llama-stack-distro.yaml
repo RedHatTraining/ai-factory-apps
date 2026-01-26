@@ -1,0 +1,44 @@
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: lsd-llama-milvus-inline
+spec:
+  replicas: 1
+  server:
+    containerSpec:
+      resources:
+        requests:
+          cpu: "1m"
+          memory: "500Mi"
+        limits:
+          cpu: 1
+          memory: "10Gi"
+      env:
+        - name: INFERENCE_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: llama-stack-inference-model-secret
+              key: INFERENCE_MODEL
+        - name: VLLM_MAX_TOKENS
+          value: "4096"
+        - name: VLLM_URL
+          valueFrom:
+            secretKeyRef:
+              name: llama-stack-inference-model-secret
+              key: VLLM_URL
+        - name: VLLM_TLS_VERIFY
+          valueFrom:
+            secretKeyRef:
+              name: llama-stack-inference-model-secret
+              key: VLLM_TLS_VERIFY
+        - name: VLLM_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: llama-stack-inference-model-secret
+              key: VLLM_API_TOKEN
+        - name: FMS_ORCHESTRATOR_URL
+          value: https://guardrails-orchestrator-my-first-model.apps.ocp.hkk6t.sandbox5156.opentlc.com
+      name: llama-stack
+      port: 8321
+    distribution:
+      name: rh-dev
