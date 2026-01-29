@@ -1,7 +1,9 @@
 apiVersion: llamastack.io/v1alpha1
 kind: LlamaStackDistribution
 metadata:
-  name: llamastack-custom-distribution
+  name: my-llama-stack
+  labels:
+    app.kubernetes.io/part-of: llama-stack
 spec:
   replicas: 1
   server:
@@ -16,9 +18,9 @@ spec:
           value: 'false'
         # Embeddings: inline with sentence-transformers
         - name: ENABLE_SENTENCE_TRANSFORMERS
-          value: "true"
+          value: 'true'
         - name: EMBEDDING_PROVIDER
-          value: "sentence-transformers"
+          value: 'sentence-transformers'
         # PostreSQL DB for metadata store
         - name: POSTGRES_HOST
           value: postgresql
@@ -27,12 +29,15 @@ spec:
         - name: POSTGRES_DB
           value: llamastack
         - name: POSTGRES_USER
-          value: llamastack
+          valueFrom:
+            secretKeyRef:
+              key: user
+              name: postgres-credentials
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               key: password
-              name: postgres-secret
+              name: postgres-credentials
       name: llama-stack
       port: 8321
     distribution:
