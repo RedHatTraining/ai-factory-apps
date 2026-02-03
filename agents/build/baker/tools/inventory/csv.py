@@ -19,22 +19,20 @@ def get_inventory():
             row["product"]: {
                 "quantity": row["quantity"],
                 "unit": row["unit"],
-                "expiry": row["expiry"],
+                "received_date": row["received_date"],
+                "expiry_date": row["expiry_date"],
                 "notes": row["notes"],
             }
             for row in reader
         }
 
 
-def get_inventory_by_product(product: str):
-    """
-    Get the inventory of a specific product.
-    """
-    return get_inventory()[product]
-
-
 def search_inventory(query: str):
     """
     Search the inventory for a specific product.
     """
-    return [product for product in get_inventory().keys() if query in product]
+    return [
+        product
+        for product in get_inventory().keys()
+        if query.lower() in product.lower()
+    ]

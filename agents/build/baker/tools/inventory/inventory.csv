@@ -1,33 +1,41 @@
-product,quantity,unit,expiry,notes
-all_purpose_flour,42,kg,2026-05-15,Main flour; reorder at 20 kg
-bread_flour,8,kg,2026-05-01,For baguettes and sourdough
-whole_wheat_flour,3,kg,2026-04-20,Low; popular for morning loaves
-rye_flour,0.5,kg,2026-03-10,Almost out; order with weekly delivery
-active_dry_yeast,0.4,kg,2026-06-01,Jar; ~80 batches
-baking_powder,1.2,kg,2026-08-01,Plenty
-baking_soda,0.5,kg,2026-07-01,Plenty
-unsalted_butter,14,kg,2026-02-28,Cold room; use soon for pastry
-vegetable_oil,5,liters,2026-04-01,Muffins and quick breads
-whole_milk,6,liters,2026-02-05,Check date
-heavy_cream,2,liters,2026-02-04,Use for scones and fillings
-buttermilk,0,liters,,Out of stock; subs: milk + lemon
-eggs,84,pieces,2026-02-08,4 flats; good for weekend rush
-granulated_sugar,22,kg,2026-06-01,Ample
-brown_sugar,4,kg,2026-05-01,Cookie season
-powdered_sugar,3,kg,2026-05-01,Frosting and dusting
-honey,1.5,kg,2026-09-01,Whole wheat rolls
-maple_syrup,0.6,liters,2026-03-01,French toast specials
-fine_sea_salt,2,kg,2026-12-01,No reorder needed
-vanilla_extract,0.35,liters,2026-04-01,Use sparingly
-cinnamon,0.2,kg,2026-03-01,Cinnamon rolls and apple bakes
-nutmeg,0.05,kg,2026-02-01,Almost empty
-chocolate_chips,5,kg,2026-04-01,Semi-sweet; cookies and muffins
-dried_cranberries,1,kg,2026-06-01,Scones and granola
-walnuts,0.8,kg,2026-03-15,Banana bread; check freshness
-sliced_almonds,0.5,kg,2026-04-01,Croissant and frangipane
-lemons,2.5,kg,2026-02-06,Curd and glaze; use this week
-apples,6,kg,2026-02-10,Pie and strudel
-blueberries,1.5,kg,2026-02-03,Frozen backup in freezer; use fresh first
-oat_milk,0,liters,,Out; vegan requests only when restocked
-cream_cheese,1.2,kg,2026-02-07,Cheesecake and spreads
-rolled_oats,4,kg,2026-04-01,Granola and oatmeal cookies
+product,quantity,unit,received_date,expiry_date,notes
+bread_flour,25,kg,2026-01-28,2026-04-15,Stone-ground; for sourdough and loaves
+all_purpose_flour,18,kg,2026-01-20,2026-04-20,Unbleached
+whole_wheat_flour,6,kg,2026-01-25,2026-03-30,Fresh-milled
+rye_flour,2,kg,2026-01-10,2026-03-15,For pumpernickel
+spelt_flour,3,kg,2026-01-15,2026-04-01,Good for sensitive stomachs
+sourdough_starter,1.2,kg,2026-02-03,,Fed this morning; very active
+butter,8,kg,2026-02-01,2026-02-28,Unsalted; keep cold
+olive_oil,2,liters,2026-01-15,2026-07-01,For focaccia
+whole_milk,5,liters,2026-02-02,2026-02-06,Local farm
+heavy_cream,1.5,liters,2026-02-02,2026-02-05,Use soon
+buttermilk,0,liters,,,Out of stock
+oat_milk,3,liters,2026-02-01,2026-02-15,For vegan options
+eggs,72,pieces,2026-02-03,2026-02-17,Free-range; fresh this morning
+honey,2,kg,2026-01-15,2027-01-01,Local wildflower
+maple_syrup,1,liters,2026-01-01,2026-09-01,Pure
+cane_sugar,12,kg,2026-01-10,2026-06-01,Organic
+brown_sugar,4,kg,2026-01-25,2026-05-15,Light
+powdered_sugar,2,kg,2026-01-20,2026-05-01,For glazes
+sea_salt,1.5,kg,2026-01-01,2027-01-01,Fine
+vanilla_extract,0.3,liters,2026-01-05,2026-06-01,Real vanilla
+cinnamon,0.2,kg,2026-01-01,2026-04-01,Ground
+nutmeg,0.08,kg,2025-12-01,2026-03-01,Whole; running low
+dark_chocolate,4,kg,2026-01-28,2026-05-01,70% for brownies
+chocolate_chips,3,kg,2026-01-25,2026-05-01,Semi-sweet
+cocoa_powder,1.2,kg,2026-01-20,2026-07-01,Dutch-process
+walnuts,1.5,kg,2026-01-30,2026-04-01,For banana bread
+almonds,1.5,kg,2026-01-25,2026-04-15,Sliced and whole
+hazelnuts,0.6,kg,2026-01-15,2026-03-15,For pastries
+rolled_oats,5,kg,2026-01-25,2026-05-01,For granola and cookies
+dried_cranberries,1,kg,2026-01-15,2026-06-01,For scones
+raisins,1.5,kg,2026-01-15,2026-07-01,For cinnamon rolls
+lemons,2,kg,2026-02-02,2026-02-07,For curd and zest
+oranges,2.5,kg,2026-02-03,2026-02-10,Fresh; for scones
+apples,5,kg,2026-01-31,2026-02-10,For pies
+blueberries,1.2,kg,2026-02-02,2026-02-05,Fresh; frozen backup available
+strawberries,1.8,kg,2026-02-03,2026-02-06,Fresh this morning
+raspberries,0.4,kg,2026-02-03,2026-02-05,Fresh this morning; use quickly
+cream_cheese,1,kg,2026-02-01,2026-02-14,For cheesecake
+pumpkin_seeds,0.6,kg,2026-01-20,2026-04-15,For seeded bread
+sunflower_seeds,0.8,kg,2026-01-20,2026-04-15,For multigrain

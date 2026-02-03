@@ -1,35 +1,14 @@
 TOOLS = [
     {
         "type": "function",
-        "name": "get_current_time",
-        "description": "Get the current time.",
-        "parameters": {"type": "object", "properties": {}},
-    },
-    {
-        "type": "function",
         "name": "get_inventory",
-        "description": "Get the current inventory of the bakery.",
+        "description": "Get the current inventory of the bakery, including the quantity of each product, the expiry date, and the received date.",
         "parameters": {"type": "object", "properties": {}},
-    },
-    {
-        "type": "function",
-        "name": "get_inventory_by_product",
-        "description": "Get the inventory of a specific product.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "product": {
-                    "type": "string",
-                    "description": "The product to get the inventory of.",
-                },
-            },
-            "required": ["product"],
-        },
     },
     {
         "type": "function",
         "name": "search_inventory",
-        "description": "Search the inventory for a specific product.",
+        "description": "Search the inventory for a specific product. Returns an empty list if no products are found.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -43,33 +22,9 @@ TOOLS = [
     },
     {
         "type": "function",
-        "name": "get_all_customer_messages",
-        "description": "Get all customer messages/orders since the given time.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "since": {
-                    "type": "string",
-                    "description": "The time since which to get the customer messages.",
-                },
-            },
-            "required": ["since"],
-        },
-    },
-    {
-        "type": "function",
-        "name": "get_customer_messages",
-        "description": "Get the customer messages/orders for a specific customer.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "customer": {
-                    "type": "string",
-                    "description": "The customer to get the messages for.",
-                },
-            },
-            "required": ["customer"],
-        },
+        "name": "get_customer_orders",
+        "description": "Get all customer pick-up orders.",
+        "parameters": {"type": "object", "properties": {}},
     },
     {
         "type": "function",
@@ -92,17 +47,17 @@ TOOLS = [
     },
     {
         "type": "function",
-        "name": "publish_menu",
-        "description": "Publish a menu to the bakery's website and social media.",
+        "name": "render_menu",
+        "description": "Generates a menu from the given Markdown content and saves the PDF ready to be printed.",
         "parameters": {
             "type": "object",
             "properties": {
-                "menu": {
+                "markdown_content": {
                     "type": "string",
-                    "description": "The menu to publish.",
+                    "description": "The menu content in simple Markdown format. The markdown should be a list of items formatted as follows: ## Item 1\nA description of the item.\n\tPrice: $3.99\n\n##Item 2...",
                 },
             },
-            "required": ["menu"],
+            "required": ["markdown_content"],
         },
     },
 ]
