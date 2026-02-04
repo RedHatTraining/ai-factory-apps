@@ -18,10 +18,10 @@ class BakerAgent:
 
     def __init__(
         self,
-        model,
-        instructions,
+        model: str,
+        instructions: str,
         client: LlamaStackClient,
-        tools,
+        tools: list[dict],
         tool_executor: Callable[[str, dict], str],
     ):
         self.model = model
@@ -39,13 +39,14 @@ class BakerAgent:
         """
         tool_calls_made = []
 
-        response = self.client.responses.create(
-            model=self.model,
-            instructions=self.instructions,
-            tools=self.tools,
-            input=user_input,
-            previous_response_id=previous_response_id,
-        )
+        # TODO 1: UNCOMMENT THIS TO SEND THE USER INPUT TO THE LLAMA STACK SERVER
+        # response = self.client.responses.create(
+        #     model=self.model,
+        #     instructions=self.instructions,
+        #     tools=self.tools,
+        #     input=user_input,
+        #     previous_response_id=previous_response_id,
+        # )
 
         # Tool calling loop: process one tool call at a time until none remain
         # Note: LLama Stack LLM can only handle one tool call at a time
