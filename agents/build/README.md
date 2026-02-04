@@ -1,7 +1,7 @@
 # The Bakery Agent
 
 Example application for lesson AI0029L.
-
+:wq
 1. Set the Llama Stack URL and th model name in the the `.env` file. Example:
 
 ```
