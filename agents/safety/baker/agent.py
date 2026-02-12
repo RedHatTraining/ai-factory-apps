@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Callable
+from typing import Callable, Literal
 
 from llama_stack_client import LlamaStackClient
 from llama_stack_client.types import ResponseObject
@@ -41,7 +41,8 @@ class BakerAgent:
         """
         tool_calls_made = []
 
-        if not self.passes_regex_shield(user_input, role="user"):
+        # Input safety check: the input should pass the regex shield
+        if not self._passes_regex_shield(user_input, role="user"):
             message = "I am sorry, but I cannot process your message due to sensitive information."
             return message, None, []
 
@@ -99,7 +100,7 @@ class BakerAgent:
             tool_call = self._extract_next_function_call(response)
 
         # Output safety check: the response should pass the regex shield
-        if not self.passes_regex_shield(response.output_text, role="assistant"):
+        if not self._passes_regex_shield(response.output_text, role="assistant"):
             message = "I am sorry, but I cannot respond to that request due to sensitive information."
             return message, None, []
 
@@ -146,33 +147,43 @@ class BakerAgent:
             self.client.shields.delete(identifier=shield_id)
             logging.info("Regex detector deleted.")
 
-        self.client.shields.register(
-            shield_id=shield_id,
-            provider_id="trustyai_fms",
-            provider_shield_id=shield_id,
-            params={
-                "type": "content",
-                "confidence_threshold": 0.5,
-                "message_types": ["system", "user"],
-                "detectors": {
-                    "regex": {"detector_params": {"regex": ["email", "ssn", "credit-card"]}}
-                },
-            },
-        )
+        # TODO 1: Uncomment to register the regex detector shield
+        # self.client.shields.register(
+        #     shield_id=shield_id,
+        #     provider_id="trustyai_fms",
+        #     provider_shield_id=shield_id,
+        #     params={
+        #         "type": "content",
+        #         "confidence_threshold": 0.5,
+        #         "message_types": ["completion", "system", "user"],
+        #         "detectors": {
+        #             "regex": {"detector_params": {"regex": ["email", "ssn", "credit-card"]}}
+        #         },
+        #     },
+        # )
 
         logging.info("Regex detector registered.")
 
 
-    def passes_regex_shield(self, message: str, role):
+    def _passes_regex_shield(self, message: str, role: Literal["user", "assistant"]):
         """
         Verify if the message passes the regex detector shield.
         Returns True if the message passes the regex shield, False otherwise.
         """
-        response = self.client.safety.run_shield(
-            shield_id="regex_detector",
-            messages=[{"role": role, "content": message}],
-            params={},
-        )
+
+        if role == "user":
+            message = {"role": role, "content": message}
+        elif role == "assistant":
+            message = {"role": role, "content": message, "stop_reason": "end_of_turn"}
+        else:
+            raise ValueError(f"Invalid role: {role}")
+
+        # TODO 2: Uncomment to run the regex detector shield
+        # response = self.client.safety.run_shield(
+        #     shield_id="regex_detector",
+        #     messages=[message],
+        #     params={},
+        # )
 
         if response.violation and response.violation.violation_level in ["error", "warn"]:
             logging.warning(
