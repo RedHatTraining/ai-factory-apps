@@ -1,0 +1,24 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: guardrails-orchestrator-config
+data:
+  config.yaml: |
+    detectors:
+      regex:
+        type: text_contents
+        service:
+            hostname: "127.0.0.1"
+            port: 8080
+        chunker_id: whole_doc_chunker
+        default_threshold: 0.5
+---
+apiVersion: trustyai.opendatahub.io/v1alpha1
+kind: GuardrailsOrchestrator
+metadata:
+  name: guardrails-orchestrator
+spec:
+  orchestratorConfig: "guardrails-orchestrator-config"
+  enableBuiltInDetectors: true
+  enableGuardrailsGateway: false
+  replicas: 1
