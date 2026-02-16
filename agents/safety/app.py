@@ -40,6 +40,9 @@ def get_agent():
         tool_executor=execute_tool,
     )
 
+# Trigger shield registration in the agent
+get_agent()
+
 
 # =============================================================================
 # Streamlit App
