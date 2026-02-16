@@ -1,0 +1,50 @@
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: my-llama-stack
+  labels:
+    app.kubernetes.io/part-of: llama-stack
+spec:
+  replicas: 1
+  server:
+    containerSpec:
+      resources:
+        requests:
+          cpu: 1m
+      env:
+        # Orchestrator: Guardrails - TODO: Set the actual orchestrator URL
+        - name: FMS_ORCHESTRATOR_URL
+          value: 'https://guardrails-orchestrator...'
+        # Inference provider: vLLM
+        - name: VLLM_URL
+          value: 'http://llama-32-3b-instruct-predictor.my-first-model.svc.cluster.local:8080/v1'
+        - name: INFERENCE_MODEL
+          value: llama-32-3b-instruct
+        - name: VLLM_TLS_VERIFY
+          value: 'false'
+        # Embeddings: inline with sentence-transformers
+        - name: ENABLE_SENTENCE_TRANSFORMERS
+          value: 'true'
+        - name: EMBEDDING_PROVIDER
+          value: 'sentence-transformers'
+        # PostreSQL DB for metadata store
+        - name: POSTGRES_HOST
+          value: postgresql
+        - name: POSTGRES_PORT
+          value: '5432'
+        - name: POSTGRES_DB
+          value: llamastack
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: user
+              name: postgres-credentials
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: postgres-credentials
+      name: llama-stack
+      port: 8321
+    distribution:
+      name: 'rh-dev'
