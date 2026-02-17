@@ -71,7 +71,7 @@ def get_agent():
 # --------------------------------------------------------------------------- #
 
 
-print(f"\n[bold]═══ Inventory Accuracy ═══[/bold]")
+print(f"\n[bold]═══ Bakery Agent Accuracy ═══[/bold]")
 print("Does the agent correctly report stock levels and assess whether orders can be fulfilled?\n")
 
 # Generate answers from the agent
