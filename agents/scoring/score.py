@@ -127,3 +127,4 @@ if accuracy >= SUCCESS_THRESHOLD:
     print("  [green]PASS[/green]")
 else:
     print("  [red]FAIL[/red]")
+    exit(1)
