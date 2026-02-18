@@ -15,18 +15,35 @@ from baker.settings import BakerSettings
 from baker.prompt import read_instructions_from_file
 from baker.tools.executor import execute_tool
 
+# --------------------------------------------------------------------------- #
+# Constants
+# --------------------------------------------------------------------------- #
+
+# TODO: Define the minimum accuracy threshold for the inventory accuracy metric
+SUCCESS_THRESHOLD = 0.6
+
+TEST_ROUNDS = 3
 
 settings = BakerSettings()
 client = LlamaStackClient(base_url=settings.llama_stack_url)
 
 # --------------------------------------------------------------------------- #
-# Read Test dataset to score two metrics: inventory accuracy and order feasibility
+# Read Test dataset
 #
 # The test dataset has been hardcoded to align with the inventory and orders.
 # --------------------------------------------------------------------------- #
 
 with open("scoring_dataset.json", "r") as f:
     dataset = json.load(f)
+
+print("Test rounds: ", TEST_ROUNDS)
+print("Dataset size (per round): ", len(dataset))
+
+# Repeat the dataset for the number of test rounds
+dataset = dataset * TEST_ROUNDS
+
+print("Total test cases: ", len(dataset))
+
 
 # --------------------------------------------------------------------------- #
 # Scoring function configuration
@@ -44,7 +61,7 @@ scoring_fn = {
         "aggregation_functions": ["categorical_count"],
         "judge_model": judge_model,
         "type": "llm_as_judge",
-        "judge_score_regexes": ["(CORRECT|INCORRECT|IRRELEVANT)"],
+        "judge_score_regexes": ["(CORRECT|INCORRECT)"],
         "prompt_template": prompt_template,
     },
 }
@@ -52,6 +69,7 @@ scoring_fn = {
 # --------------------------------------------------------------------------- #
 # Create agent
 # --------------------------------------------------------------------------- #
+
 
 def get_agent():
     """Create the agent without the Streamlit layer"""
@@ -71,17 +89,17 @@ def get_agent():
 # --------------------------------------------------------------------------- #
 
 
-print(f"\n[bold]═══ Bakery Agent Accuracy ═══[/bold]")
-print("Does the agent correctly report stock levels and assess whether orders can be fulfilled?\n")
+print(f"\n[bold]═══ Inventory Accuracy ═══[/bold]")
+print(f"Success threshold: {SUCCESS_THRESHOLD * 100:.0f}%\n")
 
 # Generate answers from the agent
-print("Calling the agent to generate answers to be tested...\n")
-for i, test in enumerate(dataset):
+print("Calling the agent to generate answers...\n")
+for i, row in enumerate(dataset):
     agent = get_agent()
-    generated_answer, _, _ = agent.send_message(test["input_query"])
-    test["generated_answer"] = generated_answer
-    print(f"Generated {i+1}/{len(dataset)}:")
-    print(test)
+    generated_answer, _, _ = agent.send_message(row["input_query"])
+    row["generated_answer"] = generated_answer
+    print(f"Generated test case {i + 1}/{len(dataset)}:")
+    print(row)
 
 # Score the generated answers
 result = client.scoring.score(
@@ -90,10 +108,22 @@ result = client.scoring.score(
 )
 print(result)
 
+# Summary
+counts = result.results["llm-as-judge::base"].aggregated_results["categorical_count"][
+    "categorical_count"
+]
+num_correct = counts.get("CORRECT", 0)
+accuracy = num_correct / len(dataset)
 
-print(f"\n[bold]Summary[/bold]")
-
-counts = result.results["llm-as-judge::base"].aggregated_results["categorical_count"]["categorical_count"]
-for label in ["CORRECT", "INCORRECT", "IRRELEVANT"]:
+print("\n[bold]Summary[/bold]")
+for label in ["CORRECT", "INCORRECT"]:
     pct = counts.get(label, 0) / len(dataset) * 100
-    print(f"  {label}: {pct}%")
+    print(f"  {label}: {pct:.0f}%")
+
+print("\n[bold]Result[/bold]")
+print(f"  Accuracy: {accuracy * 100:.0f}%")
+print(f"  Threshold: {SUCCESS_THRESHOLD * 100:.0f}%")
+if accuracy >= SUCCESS_THRESHOLD:
+    print("  [green]PASS[/green]")
+else:
+    print("  [red]FAIL[/red]")

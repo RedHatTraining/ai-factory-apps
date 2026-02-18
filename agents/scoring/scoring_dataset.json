@@ -1,44 +1,26 @@
 [
   {
+    "id": 1,
     "input_query": "How much bread flour do we have in stock?",
     "expected_answer": "25 kg of stone-ground bread flour"
   },
   {
+    "id": 2,
     "input_query": "Do we have buttermilk available?",
     "expected_answer": "No, buttermilk is out of stock"
   },
   {
-    "input_query": "How many eggs do we have?",
-    "expected_answer": "72 free-range eggs"
+    "input_query": "How much cane sugar do we have?",
+    "expected_answer": "12 kg of cane sugar"
   },
   {
-    "input_query": "Which dairy products expire within the next 3 days?",
-    "expected_answer": "Heavy cream expires Feb 5 and whole milk expires Feb 6"
+    "id": 4,
+    "input_query": "I need fresh berries for today's menu, what do we have?",
+    "expected_answer": "We have approximately 1.2 kg of blueberries, 1.8 kg of strawberries, and 0.4 kg of raspberries. All fresh and ready to use."
   },
   {
+    "id": 5,
     "input_query": "How much dark chocolate do we have and when does it expire?",
     "expected_answer": "4 kg of 70% dark chocolate, expires May 1"
-  },
-
-  {
-    "input_query": "Can we make a chocolate cake for a customer?",
-    "expected_answer": "Yes, we have dark chocolate (4 kg), eggs, butter, flour, and sugar available"
-  },
-  {
-    "input_query": "Let's prepare a batch of buttermilk pancakes for tomorrow",
-    "expected_answer": "We can't, we don't have buttermilk in stock."
-  },
-  {
-    "input_query": "Can we fulfill an order for a dozen blueberry muffins?",
-    "expected_answer": "Yes, but use the blueberries soon as they expire on Feb 5"
-  },
-  {
-    "input_query": "Take a look at the orders. Do we have to prepare any vegan options?",
-    "expected_answer": "Sam Smith is asking for vegan pastries or a small cake."
-  },
-  {
-    "input_query": "Can we make a batch of cinnamon rolls with raisins?",
-    "expected_answer": "Yes, we have cinnamon (0.2 kg), raisins (1.5 kg), bread flour, butter, and sugar"
   }
 ]
-
