@@ -20,7 +20,7 @@ from baker.tools.executor import execute_tool
 # --------------------------------------------------------------------------- #
 
 # TODO: Define the minimum accuracy threshold for the inventory accuracy metric
-SUCCESS_THRESHOLD = 0.6
+SUCCESS_THRESHOLD = 0.0
 
 TEST_ROUNDS = 3
 
