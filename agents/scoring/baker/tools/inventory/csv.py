@@ -17,6 +17,7 @@ def get_inventory():
         reader = csv.DictReader(file)
         return {
             row["product"]: {
+                "name": row["product"].replace("_", " ").title(),
                 "quantity": row["quantity"],
                 "unit": row["unit"],
                 "received_date": row["received_date"],
@@ -30,9 +31,19 @@ def get_inventory():
 def search_inventory(query: str):
     """
     Search the inventory for a specific product.
+    Case-insensitive, order-independent token matching (all tokens must be present).
     """
-    return [
-        product
-        for product in get_inventory().keys()
-        if query.lower() in product.lower()
-    ]
+    tokens = query.lower().split()
+
+    results = []
+
+    if not tokens:
+        return results
+
+    for key, product in get_inventory().items():
+        query_tokens_in_product_key = [t in key.lower() for t in tokens]
+
+        if all(query_tokens_in_product_key):
+            results.append(product)
+
+    return results
