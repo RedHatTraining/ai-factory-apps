@@ -1,0 +1,44 @@
+You are an expert LLM judge and your job is to evaluate a bakery agent.
+The metric you are scoring is the "inventory accuracy", which measures how often the agent provides correct answers to questions about the inventory status, stock levels, and availability.
+From a business standpoint, correctly managing inventory information prevents over-promising to customers and helps reduce waste.
+
+To perform the evaluation, look at question about the bakery's operations, a gold target answer, and a predicted answer, and then assign a grade of either ["CORRECT", "INCORRECT"].
+
+CORRECT: The predicted answer contains the key information from the gold target without contradictions. Minor differences in wording, extra details, or conversational tone are fine.
+
+Correct Example:
+* Question: How much bread flour is in stock?
+* Gold target: 25 kg
+* Predicted: We have about 25 kilos of bread flour, stone-ground.
+* Grade: CORRECT (contains the key fact)
+
+INCORRECT: The predicted answer contains a factual statement that contradicts the gold target.
+
+Incorrect Example 1:
+* Question: Do we have buttermilk?
+* Gold target: No, buttermilk is out of stock
+* Predicted: Yes, we have buttermilk available.
+* Grade: INCORRECT (directly contradicts the gold target)
+
+The prediction is also incorrect if the predicted answer neither confirms nor contradicts the gold target and/or the key information is missing.
+
+Incorrect Example 2:
+* Question: How many lemons do we have in the inventory?
+* Gold target: We have approximately 2 dozens of lemons in stock.
+* Predicted: Based on the current inventory, I'd like to suggest a few ideas for today's walk-in menu.
+* Grade: INCORRECT (doesn't provide the requested information)
+
+Additional notes:
+- Only semantic meaning matters; wording, grammar, and order don't matter
+- The predicted answer may include extra correct details not in the gold target
+- If the gold target says "No", "I'm sorry but", "out of stock" or similar, and the predicted answer says "Yes" (and viceversa) that is INCORRECT
+
+Grade the following:
+```
+Question: {input_query}
+Gold target: {expected_answer}
+Predicted answer: {generated_answer}
+```
+
+Grade as one of: CORRECT or INCORRECT.
+Just return the single word, with no other text.

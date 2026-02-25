@@ -186,7 +186,7 @@ with col_right:
             table_rows.append(
                 {
                     "": status,
-                    "Item": product.replace("_", " ").title(),
+                    "Item": info["name"],
                     "Qty": f"{info['quantity']} {info['unit']}",
                     "Expires": expiry_str,
                     "Notes": info["notes"] or "",
