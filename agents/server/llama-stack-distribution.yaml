@@ -11,9 +11,11 @@ spec:
       env:
         # Inference provider: vLLM
         - name: VLLM_URL
-          value: 'http://llama-32-3b-instruct-predictor.my-first-model.svc.cluster.local:8080/v1'
+          value: 'https://litellm-prod.apps.maas.redhatworkshops.io/v1'
+        - name: VLLM_API_TOKEN
+          value: ...
         - name: INFERENCE_MODEL
-          value: llama-32-3b-instruct
+          value: qwen3-14b
         - name: VLLM_TLS_VERIFY
           value: 'false'
         # Embeddings: inline with sentence-transformers
