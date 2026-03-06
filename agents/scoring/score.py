@@ -24,6 +24,8 @@ SUCCESS_THRESHOLD = 0.0
 
 TEST_ROUNDS = 3
 
+JUDGE_MODEL = "vllm-inference/granite-4-0-h-tiny"
+
 settings = BakerSettings()
 client = LlamaStackClient(base_url=settings.llama_stack_url)
 
@@ -49,9 +51,6 @@ print("Total test cases: ", len(dataset))
 # Scoring function configuration
 # --------------------------------------------------------------------------- #
 
-# Due to hardware constraints, use the same model for the judge as the inference model
-judge_model = settings.model_name
-
 # Read the judge prompt from the file
 with open("scoring_judge_prompt.txt", "r") as f:
     prompt_template = f.read()
@@ -59,7 +58,7 @@ with open("scoring_judge_prompt.txt", "r") as f:
 scoring_fn = {
     "llm-as-judge::base": {
         "aggregation_functions": ["categorical_count"],
-        "judge_model": judge_model,
+        "judge_model": JUDGE_MODEL,
         "type": "llm_as_judge",
         "judge_score_regexes": ["(CORRECT|INCORRECT)"],
         "prompt_template": prompt_template,
@@ -100,6 +99,8 @@ for i, row in enumerate(dataset):
     row["generated_answer"] = generated_answer
     print(f"Generated test case {i + 1}/{len(dataset)}:")
     print(row)
+
+print("\nScoring the generated answers ...\n")
 
 # Score the generated answers
 result = client.scoring.score(
