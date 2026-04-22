@@ -1,0 +1,148 @@
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: mysql
+  namespace: rhoai-model-registries
+  labels:
+    app.openshift.io/runtime: mysql-database
+stringData:
+  database-name: sampledb
+  database-password: mysql-admin
+  database-root-password: mysql-admin
+  database-user: admin
+type: Opaque
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql
+  namespace: rhoai-model-registries
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: rhoai-model-registries
+  labels:
+    app.openshift.io/runtime: mysql-database
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: mysql
+    spec:
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: mysql
+      containers:
+        - name: mysql
+          image: registry.redhat.io/rhel8/mysql-80:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+              protocol: TCP
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database-password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database-root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database-name
+            - name: MYSQL_DEFAULT_AUTHENTICATION_PLUGIN
+              value: "mysql_native_password"
+          resources:
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql/data
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -i
+                - -c
+                - MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin -u $MYSQL_USER ping
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -i
+                - -c
+                - MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin -u $MYSQL_USER ping
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: rhoai-model-registries
+  labels:
+    name: mysql
+spec:
+  selector:
+    name: mysql
+  ports:
+    - name: mysql
+      protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-db-secret
+  namespace: rhoai-model-registries
+type: Opaque
+stringData:
+  database-host: mysql.rhoai-model-registries.svc.cluster.local
+  database-port: "3306"
+  database-name: sampledb
+  database-user: admin
+  database-password: mysql-admin
