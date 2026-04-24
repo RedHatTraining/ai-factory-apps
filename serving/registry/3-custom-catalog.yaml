@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-catalog-sources
+  namespace: rhoai-model-registries
+data:
+  sources.yaml: |
+    catalogs:
+      - id: redhat_ai_models
+        enabled: false
+      - id: redhat_ai_validated_models
+        enabled: true
+        includedModels:
+          - RedHatAI/gpt-oss*
+      - id: "source-lab"
+        name: "My Company Custom Models"
+        type: "yaml"
+        properties:
+          yamlCatalogPath: "/data/user-sources/lab-models.yaml"
+        labels:
+          - MyCompany Custom
+
+  lab-models.yaml: |
+    models:
+      - name: "MyCompany/Qwen3-0.6b"
+        provider: MyCompany
+        description: The model is designed to respond to general instructions and can be used to build AI assistants for multiple domains, including business applications.
+        readme: |-
+          # Qwen3-0.6b customized for My Company
+
+          Version 1.0 of the base Qwen3-0.6b model fine-tuned for My Company.
+
+          You can add other notes here for the consumers of this model.
+
+          ## Model Overview
+          - **Model Architecture:** Qwen3-0.6b
+          - **Input:** Text
+          - **Output:** Text
+          - **Model Optimizations:**
+            - **Weight quantization:** FP8
+            - **Activation quantization:** FP8
+            - **Release Date:** 1/1/2026
+            - **Version:** 1.0
+          
+          ## Evaluation
+          The model was evaluated on the following tasks:
+          - Task 1
+          - Task 2
+          - Task 3
+
+          The model achieved the following scores:
+          - Score 1
+          - Score 2
+          - Score 3
+        language:
+          - en
+          - zh
+        license: apache-2.0
+        licenseLink: https://www.apache.org/licenses/LICENSE-2.0
+        tasks:
+          - text-generation
+          - tool-calling
+          - chatbot
+        customProperties:
+          model_type:
+              metadataType: MetadataStringValue
+              string_value: "generative"
+          status:
+              metadataType: MetadataStringValue
+              string_value: "experimental"
+          author:
+              metadataType: MetadataStringValue
+              string_value: "My company"
+          version:
+              metadataType: MetadataStringValue
+              string_value: "1.0"
+        artifacts:
+          - name: "qwen3-0.6b"
+            uri: "oci://quay.io/redhattraining/oci-models/qwen3_0.6b"
+        logo: data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIxNzUiIHZpZXdCb3g9IjAgMCAxNzUgMTc1Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMwZDQ3YTEiLz48c3RvcCBvZmZzZXQ9IjU1JSIgc3RvcC1jb2xvcj0iIzE1NjVjMCIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzAwODM4ZiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxNzUiIGhlaWdodD0iMTc1IiByeD0iMzYiIGZpbGw9InVybCgjZykiLz48Y2lyY2xlIGN4PSI4MiIgY3k9Ijc4IiByPSIzNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNmMmZkIiBzdHJva2Utd2lkdGg9IjEwIi8+PHBhdGggZD0iTTEwOCAxMDIgTDEzOCAxNDIiIHN0cm9rZT0iIzRkZDBlMSIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iMTM0IiBjeT0iMTM2IiByPSIxMSIgZmlsbD0iIzgwZGVlYSIvPjxjaXJjbGUgY3g9IjQ0IiBjeT0iNDgiIHI9IjUiIGZpbGw9IiNiM2U1ZmMiIG9wYWNpdHk9Ii45Ii8+PGNpcmNsZSBjeD0iMTMyIiBjeT0iNDIiIHI9IjQiIGZpbGw9IiNiM2U1ZmMiIG9wYWNpdHk9Ii43NSIvPjwvc3ZnPg==

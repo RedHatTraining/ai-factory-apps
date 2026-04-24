@@ -1,0 +1,19 @@
+apiVersion: modelregistry.opendatahub.io/v1beta1
+kind: ModelRegistry
+metadata:
+  name: model-registry-lab
+  namespace: rhoai-model-registries
+spec:
+  grpc:
+    port: 9090
+  rest:
+    port: 8080
+  mysql:
+    host: "mysql"
+    port: 3306
+    database: "sampledb"
+    username: "admin"
+    passwordSecret:
+      name: "registry-db-secret"
+      key: "database-password"
+    sslMode: "disable"
