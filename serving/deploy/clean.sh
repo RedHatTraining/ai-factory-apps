@@ -6,7 +6,7 @@ LAB_PROJECT="serving-deploy-lab"
 
 oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
 
-echo "[INFO] Deleting DS project..."
+echo "[INFO] Deleting lab project..."
 oc delete project $LAB_PROJECT --ignore-not-found
 
 echo "[INFO] Deleting GPU hardware profile..."

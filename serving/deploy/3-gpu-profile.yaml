@@ -1,24 +1,24 @@
 apiVersion: infrastructure.opendatahub.io/v1
 kind: HardwareProfile
 metadata:
-  name: gpu
+  name: gpu-minimal
   namespace: redhat-ods-applications
   annotations:
-    openshift.io/display-name: "GPU"
+    openshift.io/display-name: "GPU Minimal"
     opendatahub.io/disabled: "false"
     opendatahub.io/dashboard-feature-visibility: '[]'
 spec:
   identifiers:
     - identifier: cpu
-      defaultCount: 2
+      defaultCount: 500m
       displayName: CPU
       maxCount: 4
-      minCount: 1
+      minCount: 100m
       resourceType: CPU
     - identifier: memory
-      defaultCount: 4Gi
+      defaultCount: 8Gi
       displayName: Memory
-      maxCount: 4Gi
+      maxCount: 12Gi
       minCount: 1Gi
       resourceType: Memory
     - identifier: nvidia.com/gpu

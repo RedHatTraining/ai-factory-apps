@@ -35,6 +35,7 @@ fi
 
 # ── 4. GPU hardware profile ───────────────────────────────────────────────────
 
+echo "[INFO] Applying GPU hardware profile..."
 oc apply -f "$SCRIPT_DIR/3-gpu-profile.yaml"
 
 echo "[OK] Setup complete."
