@@ -1,0 +1,115 @@
+---
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    opendatahub.io/description: >-
+      A small GPU profile for development and experimentation. Provides 1 GPU
+      with 2 CPUs and 8 GiB of memory by default, scaling up to 4 CPUs and
+      16 GiB of memory.
+    opendatahub.io/disabled: "false"
+    opendatahub.io/display-name: Small GPU
+    opendatahub.io/managed: "false"
+  labels:
+    app.kubernetes.io/part-of: hardwareprofile
+    app.opendatahub.io/hardwareprofile: "true"
+  name: small-gpu-profile
+  namespace: gpu-profiles-test
+spec:
+  identifiers:
+  - defaultCount: "2"
+    displayName: CPU
+    identifier: cpu
+    maxCount: "4"
+    minCount: 1
+    resourceType: CPU
+  - defaultCount: 8Gi
+    displayName: Memory
+    identifier: memory
+    maxCount: 16Gi
+    minCount: 4Gi
+    resourceType: Memory
+  - defaultCount: 1
+    displayName: GPU
+    identifier: nvidia.com/gpu
+    maxCount: 1
+    minCount: 1
+    resourceType: Accelerator
+---
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    opendatahub.io/description: >-
+      A medium GPU profile for fine-tuning workloads. Provides 2 GPUs
+      with 4 CPUs and 16 GiB of memory by default, scaling up to 8 CPUs
+      and 32 GiB of memory.
+    opendatahub.io/disabled: "false"
+    opendatahub.io/display-name: Medium GPU
+    opendatahub.io/managed: "false"
+  labels:
+    app.kubernetes.io/part-of: hardwareprofile
+    app.opendatahub.io/hardwareprofile: "true"
+  name: medium-gpu-profile
+  namespace: gpu-profiles-test
+spec:
+  identifiers:
+  - defaultCount: "4"
+    displayName: CPU
+    identifier: cpu
+    maxCount: "8"
+    minCount: 2
+    resourceType: CPU
+  - defaultCount: 16Gi
+    displayName: Memory
+    identifier: memory
+    maxCount: 32Gi
+    minCount: 8Gi
+    resourceType: Memory
+  - defaultCount: 2
+    displayName: GPU
+    identifier: nvidia.com/gpu
+    maxCount: 2
+    minCount: 1
+    resourceType: Accelerator
+---
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    opendatahub.io/description: >-
+      A large GPU profile for serving large models. Provides 4 GPUs
+      with 8 CPUs and 32 GiB of memory by default, scaling up to 16 CPUs
+      and 64 GiB of memory.
+    opendatahub.io/disabled: "false"
+    opendatahub.io/display-name: Large GPU
+    opendatahub.io/managed: "false"
+  labels:
+    app.kubernetes.io/part-of: hardwareprofile
+    app.opendatahub.io/hardwareprofile: "true"
+  name: large-gpu-profile
+  namespace: gpu-profiles-test
+spec:
+  identifiers:
+  - defaultCount: "8"
+    displayName: CPU
+    identifier: cpu
+    maxCount: "16"
+    minCount: 4
+    resourceType: CPU
+  - defaultCount: 32Gi
+    displayName: Memory
+    identifier: memory
+    maxCount: 64Gi
+    minCount: 16Gi
+    resourceType: Memory
+  - defaultCount: 4
+    displayName: GPU
+    identifier: nvidia.com/gpu
+    maxCount: 4
+    minCount: 2
+    resourceType: Accelerator
+---
