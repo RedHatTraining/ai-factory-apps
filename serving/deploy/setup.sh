@@ -4,9 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAB_PROJECT="serving-deploy-lab"
 
+command -v oc &>/dev/null  || { echo "[FAIL] oc is not installed."; exit 1; }
+command -v uv &>/dev/null  || { echo "[FAIL] uv is not installed."; exit 1; }
 oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
-
-# TODO: 0. delete "my-first-model" project if it exists
 
 # ── 1. MySQL + ModelRegistry ──────────────────────────────────────────────────
 

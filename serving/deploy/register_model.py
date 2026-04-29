@@ -3,8 +3,8 @@
 # dependencies = ["model-registry"]
 # ///
 
-import subprocess
 import time
+import subprocess
 
 from model_registry import ModelRegistry
 
@@ -18,8 +18,14 @@ LOCAL_MR_PORT = 9246
 pf = subprocess.Popen(
     ["oc", "port-forward", f"svc/{REGISTRY_NAME}",
      f"{LOCAL_MR_PORT}:{MR_PORT}", "-n", REGISTRY_NS],
-    stdout=subprocess.DEVNULL,
+    stdout=subprocess.PIPE, text=True,
 )
+
+if pf.stdout is None:
+    raise RuntimeError("Failed to start port-forwarding")
+
+pf.stdout.readline()  # blocks until "Forwarding from ..." is printed
+
 time.sleep(3)
 
 try:
