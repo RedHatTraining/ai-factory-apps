@@ -1,0 +1,21 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: wl-training-low
+value: 500
+description: "Low priority for training workloads"
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: wl-training-high
+value: 1000
+description: "High priority for training workloads"
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: wl-inference-critical
+value: 2000
+description: "Highest priority for model serving and InferenceService workloads"
+---

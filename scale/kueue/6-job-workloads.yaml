@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: training-job-low
+  namespace: training-jobs
+  labels:
+    kueue.x-k8s.io/queue-name: training-queue
+    kueue.x-k8s.io/priority-class: wl-training-low
+spec:
+  suspend: true
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: training-sleeper-low
+          image: registry.access.redhat.com/ubi8/ubi
+          command: ["sleep", "300"]
+          resources:
+            requests:
+              cpu: "2"
+              memory: "2Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: training-job-high
+  namespace: training-jobs
+  labels:
+    kueue.x-k8s.io/queue-name: training-queue
+    kueue.x-k8s.io/priority-class: wl-training-high
+spec:
+  suspend: true
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: training-sleeper-high
+          image: registry.access.redhat.com/ubi8/ubi
+          command: ["sleep", "300"]
+          resources:
+            requests:
+              cpu: "2"
+              memory: "2Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"
