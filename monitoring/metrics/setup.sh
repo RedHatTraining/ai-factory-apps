@@ -17,7 +17,16 @@ else
   echo "[INFO] Project ${LAB_PROJECT} already exists, skipping."
 fi
 
-# ── 2. Create labs directory and copy InferenceService manifest ───────────────
+# ── 2. Instantiate vLLM CUDA ServingRuntime from template ────────────────────
+if ! oc get servingruntime vllm-cuda-runtime -n $LAB_PROJECT &>/dev/null; then
+  echo "[INFO] Creating vLLM CUDA ServingRuntime from template..."
+  oc process vllm-cuda-runtime-template -n redhat-ods-applications \
+    | oc apply -n $LAB_PROJECT -f -
+else
+  echo "[INFO] ServingRuntime vllm-cuda-runtime already exists, skipping."
+fi
+
+# ── 3. Create labs directory and copy InferenceService manifest ───────────────
 
 echo "[INFO] Creating labs directory at ${LABS_DIR}..."
 mkdir -p "$LABS_DIR"
