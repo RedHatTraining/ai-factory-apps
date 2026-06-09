@@ -1,0 +1,22 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: llm-model
+  namespace: monitoring-metrics
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: vLLM
+      runtime: vllm-runtime
+      storageUri: oci://quay.io/redhattraining/oci-models/qwen3_0.6b
+      resources:
+        requests:
+          cpu: 500m
+          memory: 8Gi
+        limits:
+          cpu: "4"
+          memory: 12Gi
+          nvidia.com/gpu: "1"
