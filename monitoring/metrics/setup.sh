@@ -2,37 +2,41 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAB_PROJECT="monitoring-metrics"
 
 command -v oc &>/dev/null || { echo "[FAIL] oc is not installed."; exit 1; }
-oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
+oc whoami &>/dev/null || { echo "[FAIL] Not logged in to OpenShift."; exit 1; }
 
-# ── 1. Ensure UWM is disabled ────────────────────────────────────────────────
+echo "[INFO] Step 1: Enabling User Workload Monitoring..."
+oc apply -f "$SCRIPT_DIR/1-cluster-monitoring-config.yaml"
 
-echo "[INFO] Ensuring User Workload Monitoring is disabled..."
-oc delete configmap cluster-monitoring-config \
-  -n openshift-monitoring --ignore-not-found
-oc delete configmap user-workload-monitoring-config \
-  -n openshift-user-workload-monitoring --ignore-not-found
+echo "[INFO] Step 2: Configuring UWM Prometheus instance..."
+oc apply -f "$SCRIPT_DIR/2-user-workload-monitoring-config.yaml"
 
-# ── 2. Create project ────────────────────────────────────────────────────────
+echo "[INFO] Step 3: Waiting for UWM Prometheus pods to be running..."
+oc wait pod -l app.kubernetes.io/name=prometheus \
+  -n openshift-user-workload-monitoring \
+  --for=condition=Ready --timeout=180s
 
-if ! oc get project "$LAB_PROJECT" &>/dev/null; then
-  echo "[INFO] Creating project $LAB_PROJECT..."
-  oc new-project "$LAB_PROJECT"
-else
-  echo "[INFO] Project $LAB_PROJECT already exists, skipping."
-fi
+echo "[INFO] Step 4: Creating monitoring-metrics project..."
+oc new-project monitoring-metrics 2>/dev/null || oc project monitoring-metrics
 
-# ── 3. Deploy InferenceService ────────────────────────────────────────────────
+echo "[INFO] Step 5: Deploying granite-monitor InferenceService..."
+oc apply -f "$SCRIPT_DIR/3-inferenceservice.yaml"
 
-echo "[INFO] Deploying InferenceService llm-model..."
-oc apply -f "$SCRIPT_DIR/1-inferenceservice.yaml"
-
-echo "[INFO] Waiting for InferenceService to be ready (this may take several minutes)..."
-oc wait inferenceservice/llm-model \
-  -n "$LAB_PROJECT" \
-  --for=condition=Ready \
+echo "[INFO] Step 6: Waiting for InferenceService to be Ready (up to 10 minutes)..."
+oc wait --for=condition=Ready \
+  inferenceservice/granite-monitor -n monitoring-metrics \
   --timeout=600s
+
+echo "[INFO] Step 7: Sending inference request to seed vLLM metrics..."
+ENDPOINT=$(oc get inferenceservice granite-monitor \
+  -n monitoring-metrics -o jsonpath='{.status.url}')
+curl -sk "${ENDPOINT}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "model": "granite-monitor",
+  "messages": [{"role": "user", "content": "What is OpenShift AI?"}],
+  "max_tokens": 50
+}' > /dev/null
 
 echo "[OK] Setup complete."

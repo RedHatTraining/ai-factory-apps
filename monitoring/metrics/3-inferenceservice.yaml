@@ -1,22 +1,19 @@
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
-  name: llm-model
+  name: granite-monitor
   namespace: monitoring-metrics
   annotations:
-    serving.kserve.io/deploymentMode: RawDeployment
+    serving.kserve.io/deploymentMode: Serverless
 spec:
   predictor:
     model:
       modelFormat:
         name: vLLM
       runtime: vllm-runtime
-      storageUri: oci://quay.io/redhattraining/oci-models/qwen3_0.6b
+      storageUri: oci://registry.ocp4.example.com:8443/redhattraining/granite-3.3-2b-instruct:latest
       resources:
         requests:
-          cpu: 500m
-          memory: 8Gi
+          nvidia.com/gpu: "1"
         limits:
-          cpu: "4"
-          memory: 12Gi
           nvidia.com/gpu: "1"
