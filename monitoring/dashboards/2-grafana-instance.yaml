@@ -3,6 +3,8 @@ kind: Grafana
 metadata:
   name: grafana
   namespace: grafana-monitoring
+  labels:
+    dashboards: grafana
 spec:
   config:
     security:

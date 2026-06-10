@@ -33,14 +33,17 @@ fi
 echo "[6/9] Deleting Grafana namespace..."
 oc delete project "$GRAFANA_NS" --ignore-not-found
 
-echo "[7/9] Deleting InferenceService..."
+echo "[7/10] Deleting InferenceService..."
 oc delete inferenceservice "$ISVC_NAME" -n "$MODEL_NS" --ignore-not-found
 
-echo "[8/9] Deleting ServiceMonitor..."
+echo "[8/10] Deleting ServingRuntime..."
+oc delete servingruntime vllm-runtime -n "$MODEL_NS" --ignore-not-found
+
+echo "[9/10] Deleting ServiceMonitor..."
 oc delete servicemonitor vllm-metrics -n "$MODEL_NS" --ignore-not-found
 oc delete project "$MODEL_NS" --ignore-not-found
 
-echo "[9/9] Restoring cluster monitoring configuration..."
+echo "[10/10] Restoring cluster monitoring configuration..."
 oc delete configmap cluster-monitoring-config -n openshift-monitoring --ignore-not-found
 oc delete configmap user-workload-monitoring-config -n openshift-user-workload-monitoring --ignore-not-found
 

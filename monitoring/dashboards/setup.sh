@@ -48,6 +48,47 @@ else
   echo "[INFO] Project $MODEL_NS already exists, skipping."
 fi
 
+echo "[INFO] Creating vLLM ServingRuntime..."
+oc apply -f - <<EOF
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: vllm-runtime
+  namespace: ${MODEL_NS}
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    opendatahub.io/template-name: vllm-cuda-runtime-template
+    openshift.io/display-name: vLLM NVIDIA GPU ServingRuntime for KServe
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+  containers:
+  - args:
+    - --port=8080
+    - --model=/mnt/models
+    - --served-model-name={{.Name}}
+    command:
+    - python
+    - -m
+    - vllm.entrypoints.openai.api_server
+    env:
+    - name: HF_HOME
+      value: /tmp/hf_home
+    image: registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.4
+    name: kserve-container
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+  multiModel: false
+  supportedModelFormats:
+  - autoSelect: true
+    name: vLLM
+EOF
+
 echo "[INFO] Deploying InferenceService $ISVC_NAME..."
 oc apply -f - <<EOF
 apiVersion: serving.kserve.io/v1beta1
@@ -66,7 +107,7 @@ spec:
       modelFormat:
         name: vLLM
       runtime: vllm-runtime
-      storageUri: oci://registry.redhat.io/rhelai1/granite-3-2b-instruct:latest
+      storageUri: oci://quay.io/redhat-ai-services/modelcar-catalog:granite-3.2-2b-instruct
       resources:
         limits:
           nvidia.com/gpu: "1"
