@@ -16,6 +16,9 @@ oc delete -f "$SCRIPT_DIR/vllm-alerts.yaml" --ignore-not-found
 echo "[INFO] Deleting model deployment..."
 oc delete -f "$SCRIPT_DIR/1-isvc.yaml" --ignore-not-found
 
+echo "[INFO] Deleting serving runtime..."
+oc delete -f "$SCRIPT_DIR/0-runtime.yaml" --ignore-not-found
+
 echo "[INFO] Deleting project..."
 oc delete project "$LAB_PROJECT" --ignore-not-found
 

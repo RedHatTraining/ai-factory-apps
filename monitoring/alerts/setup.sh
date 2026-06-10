@@ -47,7 +47,10 @@ else
   oc project "$LAB_PROJECT"
 fi
 
-# ── 3. Deploy InferenceService ────────────────────────────────────────────────
+# ── 3. Deploy ServingRuntime and InferenceService ────────────────────────────
+
+echo "[INFO] Deploying ServingRuntime vllm-runtime..."
+oc apply -f "$SCRIPT_DIR/0-runtime.yaml"
 
 echo "[INFO] Deploying InferenceService $ISVC_NAME..."
 oc apply -f "$SCRIPT_DIR/1-isvc.yaml"
@@ -60,14 +63,14 @@ oc wait inferenceservice "$ISVC_NAME" -n "$LAB_PROJECT" \
 
 echo "[INFO] Sending initial inference request to seed vLLM metrics..."
 
-oc port-forward -n "$LAB_PROJECT" "svc/${ISVC_NAME}-predictor" 8080:8080 &
+oc port-forward -n "$LAB_PROJECT" "deploy/${ISVC_NAME}-predictor" 8080:8080 &
 PF_PID=$!
 sleep 5
 
 curl -s http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "granite-3.2-2b-instruct",
+    "model": "'"$ISVC_NAME"'",
     "messages": [{"role": "user", "content": "Say hello."}],
     "max_tokens": 10
   }' > /dev/null 2>&1 || true

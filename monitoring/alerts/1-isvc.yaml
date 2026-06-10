@@ -11,7 +11,7 @@ spec:
       modelFormat:
         name: vLLM
       runtime: vllm-runtime
-      storageUri: oci://utility.lab.example.com/rhoai/granite-3.2-2b-instruct:latest
+      storageUri: oci://quay.io/redhat-ai-services/modelcar-catalog:granite-3.2-2b-instruct
       resources:
         limits:
           cpu: "4"

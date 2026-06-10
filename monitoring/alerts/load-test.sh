@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODEL="granite-3.2-2b-instruct"
+MODEL="granite-3-2b"
 ENDPOINT="http://localhost:8080"
 CONCURRENT=20
 
