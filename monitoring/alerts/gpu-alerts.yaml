@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-health-alerts
+  namespace: nvidia-gpu-operator
+spec:
+  groups:
+  - name: gpu-health
+    rules:
+    - alert: GPUHighTemperature
+      expr: DCGM_FI_DEV_GPU_TEMP > 30
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        description: "GPU temperature exceeds threshold on {{ $labels.instance }}"
+        summary: "GPU temperature alert"
+    - alert: GPUHighUtilization
+      expr: DCGM_FI_DEV_GPU_UTIL > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        description: "GPU utilization exceeds 80% for more than 5 minutes"
+        summary: "High GPU utilization detected"
