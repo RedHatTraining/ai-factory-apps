@@ -1,0 +1,24 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: granite-monitor
+  namespace: monitoring-alerts
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: vLLM
+      runtime: vllm-runtime-gpu
+      storageUri: oci://utility.lab.example.com:5000/openshift-ai/granite-3.1-2b-instruct:latest
+      resources:
+        limits:
+          nvidia.com/gpu: "1"
+        requests:
+          cpu: "500m"
+          memory: 8Gi
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
