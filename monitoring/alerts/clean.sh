@@ -13,6 +13,9 @@ oc delete prometheusrule gpu-health-alerts -n nvidia-gpu-operator --ignore-not-f
 echo "[INFO] Deleting inference alert rules..."
 oc delete prometheusrule vllm-inference-alerts -n "$LAB_PROJECT" --ignore-not-found
 
+echo "[INFO] Deleting model route..."
+oc delete route granite-monitor -n "$LAB_PROJECT" --ignore-not-found
+
 echo "[INFO] Deleting lab project..."
 oc delete project "$LAB_PROJECT" --ignore-not-found
 

@@ -3,14 +3,14 @@ set -euo pipefail
 
 LAB_PROJECT="monitoring-alerts"
 ISVC_NAME="granite-monitor"
-CONCURRENCY=20
+CONCURRENCY=200
 PROMPT="Write a detailed essay about the history and evolution of artificial intelligence, covering the major milestones from the 1950s to the present day, including key researchers, breakthroughs, and paradigm shifts."
 
 command -v oc &>/dev/null || { echo "[FAIL] oc is not installed."; exit 1; }
 oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
 
-ISVC_URL=$(oc get inferenceservice "$ISVC_NAME" -n "$LAB_PROJECT" \
-  -o jsonpath='{.status.url}')
+ISVC_URL="http://$(oc get route "$ISVC_NAME" -n "$LAB_PROJECT" \
+  -o jsonpath='{.spec.host}')"
 TOKEN=$(oc whoami -t)
 
 if [ -z "$ISVC_URL" ]; then
@@ -33,9 +33,9 @@ send_request() {
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer ${TOKEN}" \
       -d "{
-        \"model\": \"granite-3.1-2b-instruct\",
+        \"model\": \"granite-monitor\",
         \"messages\": [{\"role\": \"user\", \"content\": \"${PROMPT}\"}],
-        \"max_tokens\": 512
+        \"max_tokens\": 16384
       }" > /dev/null 2>&1
   done
 }

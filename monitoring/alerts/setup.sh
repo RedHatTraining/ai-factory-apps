@@ -28,33 +28,52 @@ else
   oc project "$LAB_PROJECT"
 fi
 
-# ── 3. Deploy InferenceService with vLLM ──────────────────────────────────────
+# ── 3. Create vLLM ServingRuntime ─────────────────────────────────────────────
+
+if ! oc get servingruntime vllm-cuda-runtime -n "$LAB_PROJECT" &>/dev/null; then
+  echo "[INFO] Creating vLLM CUDA ServingRuntime..."
+  oc process vllm-cuda-runtime-template -n redhat-ods-applications | \
+    oc apply -n "$LAB_PROJECT" -f -
+else
+  echo "[INFO] ServingRuntime vllm-cuda-runtime already exists, skipping."
+fi
+
+# ── 4. Deploy InferenceService with vLLM ──────────────────────────────────────
 
 echo "[INFO] Deploying InferenceService $ISVC_NAME..."
 oc apply -f "$SCRIPT_DIR/2-inferenceservice.yaml"
 
 echo "[INFO] Waiting for InferenceService to become ready (this may take several minutes)..."
 oc wait inferenceservice "$ISVC_NAME" -n "$LAB_PROJECT" \
-  --for=condition=Ready --timeout=600s
+  --for=condition=Ready --timeout=900s
 
-# ── 4. Create ServiceMonitor for vLLM metrics ────────────────────────────────
+# ── 5. Create ServiceMonitor for vLLM metrics ────────────────────────────────
 
 echo "[INFO] Creating ServiceMonitor for vLLM metrics..."
 oc apply -f "$SCRIPT_DIR/3-servicemonitor.yaml"
 
-# ── 5. Seed vLLM metrics with an initial request ─────────────────────────────
+# ── 6. Expose model endpoint via route ───────────────────────────────────────
+
+if ! oc get route "$ISVC_NAME" -n "$LAB_PROJECT" &>/dev/null; then
+  echo "[INFO] Creating route for model endpoint..."
+  oc expose svc "${ISVC_NAME}-metrics" -n "$LAB_PROJECT" --name="$ISVC_NAME"
+else
+  echo "[INFO] Route $ISVC_NAME already exists, skipping."
+fi
+
+# ── 7. Seed vLLM metrics with an initial request ─────────────────────────────
 
 echo "[INFO] Sending initial inference request to seed metrics..."
 
-ISVC_URL=$(oc get inferenceservice "$ISVC_NAME" -n "$LAB_PROJECT" \
-  -o jsonpath='{.status.url}')
+ISVC_URL="http://$(oc get route "$ISVC_NAME" -n "$LAB_PROJECT" \
+  -o jsonpath='{.spec.host}')"
 TOKEN=$(oc whoami -t)
 
-curl -sk "${ISVC_URL}/v1/chat/completions" \
+curl -s "${ISVC_URL}/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
   -d '{
-    "model": "granite-3.1-2b-instruct",
+    "model": "granite-monitor",
     "messages": [{"role": "user", "content": "Hello"}],
     "max_tokens": 10
   }' > /dev/null 2>&1 || echo "[WARN] Initial request may have timed out, metrics might need a moment to appear."

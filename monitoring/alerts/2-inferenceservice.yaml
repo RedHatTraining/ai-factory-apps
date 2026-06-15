@@ -10,8 +10,8 @@ spec:
     model:
       modelFormat:
         name: vLLM
-      runtime: vllm-runtime-gpu
-      storageUri: oci://utility.lab.example.com:5000/openshift-ai/granite-3.1-2b-instruct:latest
+      runtime: vllm-cuda-runtime
+      storageUri: oci://quay.io/redhat-ai-services/modelcar-catalog:granite-3.1-2b-instruct
       resources:
         limits:
           nvidia.com/gpu: "1"
