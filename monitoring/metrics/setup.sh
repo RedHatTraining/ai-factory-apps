@@ -29,7 +29,7 @@ oc wait pod -l app.kubernetes.io/name=prometheus \
   --for=condition=Ready --timeout=180s
 
 echo "[INFO] Creating monitoring-metrics project..."
-oc new-project monitoring-metrics 2>/dev/null || oc project monitoring-metrics
+oc new-project monitoring-metrics > /dev/null || oc project monitoring-metrics
 oc label namespace monitoring-metrics \
   opendatahub.io/dashboard=true \
   modelmesh-enabled=false \
@@ -64,7 +64,7 @@ QUESTIONS=(
 )
 for i in "${!QUESTIONS[@]}"; do
   Q="${QUESTIONS[$i]}"
-  oc exec -n monitoring-metrics "$POD" -- \
+  oc exec -n monitoring-metrics "$POD" -c kserve-container -- \
     curl -s http://localhost:8080/v1/chat/completions \
     -H "Content-Type: application/json" \
     -d "{\"model\":\"granite-monitor\",\"messages\":[{\"role\":\"user\",\"content\":\"${Q} Answer in one sentence.\"}],\"max_tokens\":30}" \
