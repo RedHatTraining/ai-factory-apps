@@ -2,193 +2,48 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODEL_NS="monitoring-dashboards"
-GRAFANA_NS="grafana-monitoring"
-ISVC_NAME="granite-3-2b"
 
 command -v oc &>/dev/null || { echo "[FAIL] oc is not installed."; exit 1; }
-oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
-
-# ── 1. Enable User Workload Monitoring ────────────────────────────────────────
+oc whoami &>/dev/null || { echo "[FAIL] Not logged in to OpenShift."; exit 1; }
 
 echo "[INFO] Enabling User Workload Monitoring..."
+oc apply -f "$SCRIPT_DIR/1-cluster-monitoring-config.yaml"
 
-oc apply -f - <<'EOF'
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cluster-monitoring-config
-  namespace: openshift-monitoring
-data:
-  config.yaml: |
-    enableUserWorkload: true
-EOF
+echo "[INFO] Configuring UWM Prometheus instance..."
+oc apply -f "$SCRIPT_DIR/2-user-workload-monitoring-config.yaml"
 
-oc apply -f - <<'EOF'
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: user-workload-monitoring-config
-  namespace: openshift-user-workload-monitoring
-data:
-  config.yaml: ""
-EOF
-
-echo "[INFO] Waiting for user workload monitoring pods..."
-sleep 10
-oc wait pod -n openshift-user-workload-monitoring -l app.kubernetes.io/name=prometheus \
-  --for=condition=Ready --timeout=180s 2>/dev/null || true
-
-# ── 2. Create model project and deploy InferenceService ───────────────────────
-
-if ! oc get project "$MODEL_NS" &>/dev/null; then
-  echo "[INFO] Creating project $MODEL_NS..."
-  oc new-project "$MODEL_NS"
-else
-  echo "[INFO] Project $MODEL_NS already exists, skipping."
-fi
-
-echo "[INFO] Creating vLLM ServingRuntime..."
-oc apply -f - <<EOF
-apiVersion: serving.kserve.io/v1alpha1
-kind: ServingRuntime
-metadata:
-  name: vllm-runtime
-  namespace: ${MODEL_NS}
-  annotations:
-    opendatahub.io/apiProtocol: REST
-    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
-    opendatahub.io/template-name: vllm-cuda-runtime-template
-    openshift.io/display-name: vLLM NVIDIA GPU ServingRuntime for KServe
-  labels:
-    opendatahub.io/dashboard: "true"
-spec:
-  annotations:
-    prometheus.io/path: /metrics
-    prometheus.io/port: "8080"
-  containers:
-  - args:
-    - --port=8080
-    - --model=/mnt/models
-    - --served-model-name={{.Name}}
-    command:
-    - python
-    - -m
-    - vllm.entrypoints.openai.api_server
-    env:
-    - name: HF_HOME
-      value: /tmp/hf_home
-    image: registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.4
-    name: kserve-container
-    ports:
-    - containerPort: 8080
-      protocol: TCP
-  multiModel: false
-  supportedModelFormats:
-  - autoSelect: true
-    name: vLLM
-EOF
-
-echo "[INFO] Deploying InferenceService $ISVC_NAME..."
-oc apply -f - <<EOF
-apiVersion: serving.kserve.io/v1beta1
-kind: InferenceService
-metadata:
-  name: ${ISVC_NAME}
-  namespace: ${MODEL_NS}
-  annotations:
-    serving.kserve.io/deploymentMode: RawDeployment
-    serving.knative.dev/targetBurstCapacity: "0"
-  labels:
-    opendatahub.io/dashboard: "true"
-spec:
-  predictor:
-    model:
-      modelFormat:
-        name: vLLM
-      runtime: vllm-runtime
-      storageUri: oci://quay.io/redhat-ai-services/modelcar-catalog:granite-3.2-2b-instruct
-      resources:
-        limits:
-          nvidia.com/gpu: "1"
-        requests:
-          nvidia.com/gpu: "1"
-EOF
-
-echo "[INFO] Waiting for InferenceService to become ready (this may take several minutes)..."
-oc wait inferenceservice "$ISVC_NAME" -n "$MODEL_NS" \
-  --for=condition=Ready --timeout=600s
-
-# ── 3. Create ServiceMonitor ─────────────────────────────────────────────────
-
-echo "[INFO] Creating ServiceMonitor for vLLM metrics..."
-oc apply -f - <<EOF
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: vllm-metrics
-  namespace: ${MODEL_NS}
-spec:
-  endpoints:
-    - port: http
-      path: /metrics
-      interval: 15s
-  namespaceSelector:
-    matchNames:
-      - ${MODEL_NS}
-  selector:
-    matchLabels:
-      serving.kserve.io/inferenceservice: ${ISVC_NAME}
-EOF
-
-# ── 4. Create Grafana namespace and install operator ──────────────────────────
-
-if ! oc get project "$GRAFANA_NS" &>/dev/null; then
-  echo "[INFO] Creating namespace $GRAFANA_NS..."
-  oc new-project "$GRAFANA_NS"
-else
-  echo "[INFO] Namespace $GRAFANA_NS already exists, skipping."
-fi
-
-echo "[INFO] Installing Grafana Operator..."
-oc apply -f - <<EOF
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: grafana-operator-group
-  namespace: ${GRAFANA_NS}
-spec:
-  targetNamespaces:
-    - ${GRAFANA_NS}
----
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: grafana-operator
-  namespace: ${GRAFANA_NS}
-spec:
-  channel: v5
-  name: grafana-operator
-  source: community-operators
-  sourceNamespace: openshift-marketplace
-  installPlanApproval: Automatic
-EOF
-
-echo "[INFO] Waiting for Grafana Operator CSV to succeed..."
-for i in $(seq 1 60); do
-  CSV=$(oc get csv -n "$GRAFANA_NS" -l operators.coreos.com/grafana-operator.${GRAFANA_NS}="" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-  if [ -n "$CSV" ]; then
-    PHASE=$(oc get csv "$CSV" -n "$GRAFANA_NS" -o jsonpath='{.status.phase}' 2>/dev/null || true)
-    if [ "$PHASE" = "Succeeded" ]; then
-      echo "[INFO] Grafana Operator CSV $CSV is ready."
-      break
-    fi
-  fi
-  if [ "$i" -eq 60 ]; then
-    echo "[FAIL] Timed out waiting for Grafana Operator CSV."
+echo "[INFO] Waiting for UWM Prometheus pods to be created..."
+retries=0
+until oc get pod -l app.kubernetes.io/name=prometheus \
+  -n openshift-user-workload-monitoring -o name 2>/dev/null | grep -q .; do
+  retries=$((retries + 1))
+  if [ "$retries" -ge 30 ]; then
+    echo "[FAIL] UWM Prometheus pods not created after 60 seconds."
     exit 1
   fi
-  sleep 10
+  sleep 2
 done
+echo "[INFO] Pods found. Waiting for Ready state..."
+oc wait pod -l app.kubernetes.io/name=prometheus \
+  -n openshift-user-workload-monitoring \
+  --for=condition=Ready --timeout=180s
+
+echo "[INFO] Creating monitoring-metrics project..."
+oc new-project monitoring-metrics > /dev/null || oc project monitoring-metrics
+oc label namespace monitoring-metrics \
+  opendatahub.io/dashboard=true \
+  modelmesh-enabled=false \
+  --overwrite
+
+echo "[INFO] Deploying vLLM ServingRuntime..."
+oc apply -f "$SCRIPT_DIR/3-serving-runtime.yaml"
+
+echo "[INFO] Deploying granite-monitor InferenceService..."
+oc apply -f "$SCRIPT_DIR/4-inferenceservice.yaml"
+
+echo "[INFO] Waiting for InferenceService to be Ready (up to 10 minutes)..."
+oc wait --for=condition=Ready \
+  inferenceservice/granite-monitor -n monitoring-metrics \
+  --timeout=600s
 
 echo "[OK] Setup complete."
