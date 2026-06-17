@@ -1,0 +1,57 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: inference-slo-alerts
+  namespace: monitoring-metrics
+  labels:
+    app: llm-serving
+spec:
+  groups:
+    - name: inference-slo
+      rules:
+        - alert: InferenceQueueBacklog
+          expr: vllm:num_requests_waiting{namespace="monitoring-metrics"} > 2
+          for: 30s
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $value }} requests waiting in inference queue"
+            description: >-
+              The vLLM model server in namespace {{ $labels.namespace }}
+              has {{ $value }} requests waiting in the inference queue
+              for more than 30 seconds. Users are experiencing queuing
+              delay. Check KV cache usage and consider scaling.
+
+        - alert: HighTTFTLatency
+          expr: >-
+            histogram_quantile(0.95,
+              sum by(le) (
+                rate(vllm:time_to_first_token_seconds_bucket{namespace="monitoring-metrics"}[5m])
+              )
+            ) > 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TTFT p95 latency exceeds 1s SLO"
+            description: >-
+              The 95th percentile Time to First Token for the model
+              server in namespace {{ $labels.namespace }} is above 1
+              second for more than 1 minute. Users are experiencing
+              slow initial response times. Check GPU utilization and
+              queue depth.
+
+        - alert: KVCacheHighUsage
+          expr: vllm:kv_cache_usage_perc{namespace="monitoring-metrics"} > 0.3
+          for: 30s
+          labels:
+            severity: warning
+          annotations:
+            summary: "KV cache usage above 30%"
+            description: >-
+              KV cache on the model server in namespace
+              {{ $labels.namespace }} is at {{ $value | humanizePercentage }}
+              utilization for more than 30 seconds. The model is
+              approaching its concurrent request capacity. New requests
+              may begin queuing soon.

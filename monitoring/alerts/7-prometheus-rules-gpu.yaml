@@ -1,0 +1,37 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-health-alerts
+  namespace: nvidia-gpu-operator
+  labels:
+    app: llm-serving
+spec:
+  groups:
+    - name: gpu-health
+      rules:
+        - alert: HighGPUUtilization
+          expr: DCGM_FI_PROF_GR_ENGINE_ACTIVE > 0.5
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "GPU utilization above 50%"
+            description: >-
+              GPU {{ $labels.gpu }} on node {{ $labels.instance }}
+              has been at {{ $value | humanizePercentage }} utilization
+              for more than 1 minute. Check the vLLM Inference
+              dashboard for queue depth and consider scaling.
+
+        - alert: GPUTemperatureHigh
+          expr: DCGM_FI_DEV_GPU_TEMP > 55
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "GPU temperature elevated ({{ $value }}C)"
+            description: >-
+              GPU {{ $labels.gpu }} on node {{ $labels.instance }}
+              is at {{ $value }}C. Monitor temperature trends and
+              check datacenter cooling if temperature continues
+              to rise.

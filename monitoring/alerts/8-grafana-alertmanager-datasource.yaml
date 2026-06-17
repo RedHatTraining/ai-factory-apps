@@ -1,0 +1,64 @@
+---
+# ClusterRole granting read access to the platform Alertmanager API.
+# The Grafana SA already has cluster-monitoring-view (for Prometheus);
+# this adds the Alertmanager subresource so Grafana can show firing
+# alerts in its Alerting > Alert activity page.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alertmanager-api-view
+rules:
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - alertmanagers/api
+    resourceNames:
+      - main
+    verbs:
+      - get
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grafana-alertmanager-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alertmanager-api-view
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: user-grafana
+---
+# Alertmanager datasource for Grafana.
+# Uses the same SA token as the Prometheus datasource.
+# Implementation: Prometheus (OpenShift uses the Prometheus Alertmanager).
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: alertmanager
+  namespace: user-grafana
+spec:
+  allowCrossNamespaceImport: false
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: OpenShift Alertmanager
+    type: alertmanager
+    access: proxy
+    url: https://alertmanager-main.openshift-monitoring.svc:9094
+    editable: true
+    jsonData:
+      implementation: prometheus
+      httpHeaderName1: Authorization
+      tlsSkipVerify: true
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${token}"
+  valuesFrom:
+    - targetPath: secureJsonData.httpHeaderValue1
+      valueFrom:
+        secretKeyRef:
+          name: grafana-auth-secret
+          key: token
