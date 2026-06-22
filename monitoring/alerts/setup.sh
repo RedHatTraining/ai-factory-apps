@@ -49,6 +49,3 @@ oc wait --for=condition=Ready \
 echo ""
 echo "[OK] Setup complete."
 echo ""
-echo "Next steps:"
-echo "  1. Run ./5-deploy-grafana.sh to deploy Grafana dashboards"
-echo "  2. Run ./load.sh to generate load and trigger alerts"
