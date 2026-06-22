@@ -26,7 +26,7 @@ spec:
         - alert: HighTTFTLatency
           expr: >-
             histogram_quantile(0.95,
-              sum by(le) (
+              sum by(le, namespace) (
                 rate(vllm:time_to_first_token_seconds_bucket{namespace="monitoring-metrics"}[5m])
               )
             ) > 1
