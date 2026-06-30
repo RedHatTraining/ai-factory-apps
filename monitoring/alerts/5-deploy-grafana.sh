@@ -42,9 +42,9 @@ oc apply -k "$SCRIPT_DIR/rhoai-uwm/rhoai-uwm-grafana/base/operator" \
 
 echo "[2/8] Waiting for Grafana CRDs to be established..."
 oc wait crd grafanas.grafana.integreatly.org \
-  --for=create --timeout=300s
+  --for=create --timeout=1200s
 oc wait crd grafanas.grafana.integreatly.org \
-  --for=condition=Established --timeout=60s
+  --for=condition=Established --timeout=600s
 echo "[OK] Grafana CRDs are established."
 
 echo "[3/8] Applying full kustomize overlay (instance + dashboards)..."
@@ -52,14 +52,14 @@ oc apply -k "$OVERLAY_DIR"
 
 echo "[4/8] Waiting for Grafana pods to be Ready..."
 oc wait pod -l app=grafana -n user-grafana \
-  --for=create --timeout=120s
+  --for=create --timeout=360s
 oc wait pod -l app=grafana -n user-grafana \
-  --for=condition=Ready --timeout=300s
+  --for=condition=Ready --timeout=1200s
 echo "[OK] Grafana pods are ready."
 
 echo "[5/8] Waiting for Grafana instance to finish reconciling..."
 oc wait grafana/grafana -n user-grafana \
-  --for=jsonpath='{.status.stageStatus}'=success --timeout=180s
+  --for=jsonpath='{.status.stageStatus}'=success --timeout=600s
 echo "[OK] Grafana instance is fully reconciled."
 
 echo "[6/8] Re-applying grafana-auth-secret (SA token for Thanos access)..."
@@ -72,9 +72,9 @@ oc annotate grafanadashboard nvidia-gpu-vllm-metrics-dashboard \
   -n user-grafana resync="$(date +%s)" --overwrite
 
 echo "[8/8] Waiting for datasource and dashboards to sync..."
-wait_for_cr_sync grafanadatasource prometheus-grafanadatasource 120
+wait_for_cr_sync grafanadatasource prometheus-grafanadatasource 600
 echo "[OK] Datasource synced."
-wait_for_cr_sync grafanadashboard nvidia-gpu-vllm-metrics-dashboard 120
+wait_for_cr_sync grafanadashboard nvidia-gpu-vllm-metrics-dashboard 600
 echo "[OK] nvidia-gpu-vllm-metrics-dashboard synced."
 
 GRAFANA_URL="https://$(oc get route grafana-route -n user-grafana -o jsonpath='{.spec.host}')"

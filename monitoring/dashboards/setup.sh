@@ -41,9 +41,9 @@ oc apply -f "$SCRIPT_DIR/3-serving-runtime.yaml"
 echo "[INFO] Deploying granite-monitor InferenceService..."
 oc apply -f "$SCRIPT_DIR/4-inferenceservice.yaml"
 
-echo "[INFO] Waiting for InferenceService to be Ready (up to 10 minutes)..."
+echo "[INFO] Waiting for InferenceService to be Ready (up to 20 minutes)..."
 oc wait --for=condition=Ready \
   inferenceservice/granite-monitor -n monitoring-metrics \
-  --timeout=600s
+  --timeout=1200s
 
 echo "[OK] Setup complete."
