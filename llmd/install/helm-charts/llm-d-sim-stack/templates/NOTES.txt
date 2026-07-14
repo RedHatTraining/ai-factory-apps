@@ -1,0 +1,45 @@
+llm-d Simulator Stack deployed to {{ .Release.Namespace }}.
+
+Resources created (matching what LLMInferenceService would auto-create):
+
+  Simulator:
+    - Deployment: {{ .Release.Name }} ({{ .Values.simulator.replicas }} replicas)
+    - Service:    {{ .Release.Name }} (port {{ .Values.simulator.port }})
+    - Model:      {{ .Values.simulator.model }}
+    - Mode:       {{ .Values.simulator.mode }}
+    {{- if .Values.simulator.datasetPath }}
+    - Dataset:    {{ .Values.simulator.datasetPath }} (baked into image)
+    {{- end }}
+
+  Endpoint Picker (EPP):
+    - Deployment: {{ .Release.Name }}-epp
+    - Service:    {{ .Release.Name }}-epp (ports 9002/9090)
+
+  Routing:
+    - InferencePool: {{ include "sim-stack.poolName" . }}
+
+Verify the deployment:
+
+  1. Wait for simulator pods (vllm-render sidecar downloads the tokenizer on first start):
+
+     oc wait deployment/{{ .Release.Name }} -n {{ .Release.Namespace }} \
+       --for=condition=Available --timeout=300s
+
+  2. Wait for EPP pod:
+
+     oc wait deployment/{{ .Release.Name }}-epp -n {{ .Release.Namespace }} \
+       --for=condition=Available --timeout=120s
+
+  3. Check InferencePool has discovered simulator endpoints:
+
+     oc get inferencepool {{ include "sim-stack.poolName" . }} -n {{ .Release.Namespace }}
+
+  4. Test the simulator directly:
+
+     oc exec -n {{ .Release.Namespace }} deploy/{{ .Release.Name }} -c simulator -- \
+       curl -s http://localhost:{{ .Values.simulator.port }}/v1/models | python3 -m json.tool
+
+Next steps (Module 1):
+  - Create a Gateway using data-science-gateway-class
+  - Create an HTTPRoute pointing to the InferencePool
+  - Send inference requests through the Gateway → EPP → simulator

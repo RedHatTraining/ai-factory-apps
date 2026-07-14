@@ -1,0 +1,9 @@
+{{- if and .Values.rhoai.enabled (not (lookup "v1" "Namespace" "" .Values.rhoai.namespace)) }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.rhoai.namespace }}
+  labels:
+    openshift.io/cluster-monitoring: "true"
+    {{- include "rhoai.labels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,15 @@
+{{- if and .Values.keda.enabled (not (lookup "operators.coreos.com/v1alpha1" "Subscription" .Values.keda.namespace "openshift-custom-metrics-autoscaler-operator")) }}
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-custom-metrics-autoscaler-operator
+  namespace: {{ .Values.keda.namespace }}
+  labels:
+    {{- include "rhoai.labels" . | nindent 4 }}
+spec:
+  channel: {{ .Values.keda.channel }}
+  installPlanApproval: Automatic
+  name: openshift-custom-metrics-autoscaler-operator
+  source: {{ .Values.catalog.source }}
+  sourceNamespace: {{ .Values.catalog.sourceNamespace }}
+{{- end }}

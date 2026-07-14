@@ -1,0 +1,54 @@
+# Operator catalog defaults
+catalog:
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+# Node Feature Discovery
+nfd:
+  enabled: true
+  channel: stable
+  namespace: openshift-nfd
+
+# OpenShift Serverless (Knative) — required by KServe
+serverless:
+  enabled: true
+  channel: stable
+  namespace: openshift-serverless
+
+# Authorino Operator (all-namespace operator — installs into openshift-operators)
+authorino:
+  enabled: true
+  channel: stable
+
+# OpenShift Pipelines (all-namespace operator — installs into openshift-operators)
+pipelines:
+  enabled: true
+  channel: latest
+
+# Red Hat OpenShift Service Mesh 3 (all-namespace operator — installs into openshift-operators)
+servicemesh3:
+  enabled: true
+  channel: stable
+
+# Custom Metrics Autoscaler (KEDA) — required for Workload Variant Autoscaler (WVA)
+keda:
+  enabled: true
+  channel: stable
+  namespace: openshift-keda
+
+# Red Hat Connectivity Link (Kuadrant) — authentication/authorization for inference endpoints (Appendix A)
+kuadrant:
+  enabled: false
+  channel: stable
+  namespace: kuadrant-system
+
+# Red Hat OpenShift AI
+rhoai:
+  enabled: true
+  channel: stable-3.4
+  namespace: redhat-ods-operator
+
+# User Workload Monitoring — required for Prometheus metrics collection
+monitoring:
+  userWorkload:
+    enabled: true

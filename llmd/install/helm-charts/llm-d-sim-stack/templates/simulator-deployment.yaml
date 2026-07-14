@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "sim-stack.labels" . | nindent 4 }}
+    {{- include "sim-stack.simulatorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.simulator.replicas }}
+  selector:
+    matchLabels:
+      {{- include "sim-stack.simulatorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sim-stack.labels" . | nindent 8 }}
+        {{- include "sim-stack.simulatorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: vllm-render
+          image: {{ .Values.vllmRender.image }}
+          restartPolicy: Always
+          command: ["vllm", "launch", "render"]
+          args:
+            - {{ .Values.simulator.model | quote }}
+            - "--port={{ .Values.vllmRender.port }}"
+          ports:
+            - containerPort: {{ .Values.vllmRender.port }}
+              name: render-http
+          env:
+            - name: HF_HOME
+              value: /tmp/hf-cache
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /tmp/hf-cache
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.vllmRender.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 60
+          resources:
+            {{- toYaml .Values.vllmRender.resources | nindent 12 }}
+      containers:
+        - name: simulator
+          image: {{ .Values.simulator.image }}
+          args:
+            - "--port={{ .Values.simulator.port }}"
+            - "--model={{ .Values.simulator.model }}"
+            - "--render-url=http://localhost:{{ .Values.vllmRender.port }}"
+            - "--mode={{ .Values.simulator.mode }}"
+            - "--time-to-first-token={{ .Values.simulator.timeToFirstToken }}"
+            - "--inter-token-latency={{ .Values.simulator.interTokenLatency }}"
+            {{- if .Values.simulator.datasetPath }}
+            - "--dataset-path={{ .Values.simulator.datasetPath }}"
+            {{- end }}
+            {{- if .Values.simulator.datasetInMemory }}
+            - "--dataset-in-memory"
+            {{- end }}
+            {{- if .Values.simulator.fakeMetrics }}
+            - {{ printf "--fake-metrics=%s" (.Values.simulator.fakeMetrics | toJson) | quote }}
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.simulator.port }}
+              name: http
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          startupProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.simulator.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.simulator.port }}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.simulator.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.simulator.resources | nindent 12 }}
+      volumes:
+        - name: hf-cache
+          emptyDir: {}
