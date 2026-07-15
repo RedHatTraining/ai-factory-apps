@@ -32,7 +32,8 @@ echo ""
 if curl -s "http://localhost:${PORT}${ENDPOINT}" | python3 -m json.tool; then
     echo ""
     echo "✓ Port-forward test successful"
-    exit 0
+    echo "Port-forward is running on localhost:${PORT}. Press Ctrl-C to stop."
+    wait ${PF_PID}
 else
     echo ""
     echo "✗ Port-forward test failed"
