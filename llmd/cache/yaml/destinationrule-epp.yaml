@@ -1,0 +1,12 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: llm-d-sim-epp
+spec:
+  host: llm-d-sim-epp.llm-d-lab.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+    connectionPool:
+      http:
+        h2UpgradePolicy: UPGRADE
