@@ -19,8 +19,11 @@ PF_PID=$!
 # Ensure port-forward is killed on exit
 trap "kill ${PF_PID} 2>/dev/null || true" EXIT
 
-# Wait for port-forward to be ready
-sleep 2
+# Wait for port-forward to be ready (up to 10 seconds)
+for i in $(seq 1 10); do
+    curl -s -o /dev/null "http://localhost:${PORT}${ENDPOINT}" 2>/dev/null && break
+    sleep 1
+done
 
 echo "Testing endpoint: http://localhost:${PORT}${ENDPOINT}"
 echo ""
