@@ -6,41 +6,35 @@ catalog:
 # Node Feature Discovery
 nfd:
   enabled: true
-  channel: stable
+  channel: stable  # Only channel available
   namespace: openshift-nfd
-  startingCSV: nfd.4.21.0-202607031221
 
 # OpenShift Serverless (Knative) — required by KServe
 serverless:
   enabled: true
-  channel: stable
+  channel: stable-1.37  # Most specific channel for version 1.37.x
   namespace: openshift-serverless
-  startingCSV: serverless-operator.v1.37.1
 
 # Authorino Operator (all-namespace operator — installs into openshift-operators)
 authorino:
   enabled: true
-  channel: stable
-  startingCSV: authorino-operator.v1.4.1
+  channel: stable  # Only production channel (alpha also available)
 
 # OpenShift Pipelines (all-namespace operator — installs into openshift-operators)
 pipelines:
   enabled: true
-  channel: latest
-  startingCSV: openshift-pipelines-operator-rh.v1.22.4
+  channel: pipelines-1.22  # Most specific channel for version 1.22.x
 
 # Red Hat OpenShift Service Mesh 3 (all-namespace operator — installs into openshift-operators)
 servicemesh3:
   enabled: true
-  channel: stable
-  startingCSV: servicemeshoperator3.v3.4.0
+  channel: stable-3.4  # Most specific channel for version 3.4.x
 
 # Custom Metrics Autoscaler (KEDA) — required for Workload Variant Autoscaler (WVA)
 keda:
   enabled: true
-  channel: stable
+  channel: stable  # Only channel available
   namespace: openshift-keda
-  startingCSV: custom-metrics-autoscaler.v2.19.0-2
 
 # Red Hat Connectivity Link (Kuadrant) — authentication/authorization for inference endpoints (Appendix A)
 kuadrant:
@@ -51,9 +45,8 @@ kuadrant:
 # Red Hat OpenShift AI
 rhoai:
   enabled: true
-  channel: stable-3.4
+  channel: stable-3.4  # Most specific channel for version 3.4.x (already optimal)
   namespace: redhat-ods-operator
-  startingCSV: rhods-operator.3.4.2
 
 # User Workload Monitoring — required for Prometheus metrics collection
 monitoring:
