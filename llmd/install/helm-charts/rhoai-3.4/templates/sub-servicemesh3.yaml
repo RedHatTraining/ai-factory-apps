@@ -12,4 +12,7 @@ spec:
   name: servicemeshoperator3
   source: {{ .Values.catalog.source }}
   sourceNamespace: {{ .Values.catalog.sourceNamespace }}
+  {{- if .Values.servicemesh3.startingCSV }}
+  startingCSV: {{ .Values.servicemesh3.startingCSV }}
+  {{- end }}
 {{- end }}

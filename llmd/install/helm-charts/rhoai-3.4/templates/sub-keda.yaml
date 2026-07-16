@@ -12,4 +12,7 @@ spec:
   name: openshift-custom-metrics-autoscaler-operator
   source: {{ .Values.catalog.source }}
   sourceNamespace: {{ .Values.catalog.sourceNamespace }}
+  {{- if .Values.keda.startingCSV }}
+  startingCSV: {{ .Values.keda.startingCSV }}
+  {{- end }}
 {{- end }}
