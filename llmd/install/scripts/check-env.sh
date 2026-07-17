@@ -245,46 +245,42 @@ fi
 header "7. No Leftover Lab Resources"
 ###############################################################################
 
-if [[ "$MODE" == "pre" ]]; then
-  LEFTOVERS=0
+LEFTOVERS=0
 
-  if oc get ns "$LAB_NAMESPACE" &>/dev/null; then
-    fail "Lab namespace '$LAB_NAMESPACE' still exists"
+if oc get ns "$LAB_NAMESPACE" &>/dev/null; then
+  fail "Lab namespace '$LAB_NAMESPACE' still exists"
+  ((LEFTOVERS++))
+fi
+
+HELM_RELEASES=$(helm list -A --short 2>/dev/null | grep "^${HELM_RELEASE_PREFIX}" || true)
+if [[ -n "$HELM_RELEASES" ]]; then
+  while IFS= read -r rel; do
+    fail "Helm release '$rel' still exists"
+    ((LEFTOVERS++))
+  done <<< "$HELM_RELEASES"
+fi
+
+LLM_D_LABELED=$(oc get nodes -l llm-d.ai/role --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$LLM_D_LABELED" -gt 0 ]]; then
+  fail "llm-d.ai/role labels found on $LLM_D_LABELED node(s)"
+  ((LEFTOVERS++))
+fi
+
+if oc get ns "$LAB_NAMESPACE" &>/dev/null 2>&1; then
+  IP_COUNT=$(oc get inferencepools -n "$LAB_NAMESPACE" --no-headers 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$IP_COUNT" -gt 0 ]]; then
+    fail "$IP_COUNT InferencePool(s) in $LAB_NAMESPACE"
     ((LEFTOVERS++))
   fi
+fi
 
-  HELM_RELEASES=$(helm list -A --short 2>/dev/null | grep "^${HELM_RELEASE_PREFIX}" || true)
-  if [[ -n "$HELM_RELEASES" ]]; then
-    while IFS= read -r rel; do
-      fail "Helm release '$rel' still exists"
-      ((LEFTOVERS++))
-    done <<< "$HELM_RELEASES"
-  fi
-
-  LLM_D_LABELED=$(oc get nodes -l llm-d.ai/role --no-headers 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "$LLM_D_LABELED" -gt 0 ]]; then
-    fail "llm-d.ai/role labels found on $LLM_D_LABELED node(s)"
-    ((LEFTOVERS++))
-  fi
-
-  if oc get ns "$LAB_NAMESPACE" &>/dev/null 2>&1; then
-    IP_COUNT=$(oc get inferencepools -n "$LAB_NAMESPACE" --no-headers 2>/dev/null | wc -l | tr -d ' ')
-    if [[ "$IP_COUNT" -gt 0 ]]; then
-      fail "$IP_COUNT InferencePool(s) in $LAB_NAMESPACE"
-      ((LEFTOVERS++))
-    fi
-  fi
-
-  if [[ "$LEFTOVERS" -eq 0 ]]; then
-    check_pass "No leftover lab resources found"
-  else
-    FAIL=$((FAIL + LEFTOVERS))
-    echo ""
-    echo -e "     ${CYAN}Fix:${NC} Run the cleanup script to remove all leftover resources:"
-    echo -e "     ${BOLD}bash scripts/cluster-reset.sh${NC}"
-  fi
+if [[ "$LEFTOVERS" -eq 0 ]]; then
+  check_pass "No leftover lab resources found"
 else
-  info "Check only valid for pre-install check"
+  FAIL=$((FAIL + LEFTOVERS))
+  echo ""
+  echo -e "     ${CYAN}Fix:${NC} Run the cleanup script to remove all leftover resources:"
+  echo -e "     ${BOLD}bash scripts/cluster-reset.sh${NC}"
 fi
 
 ###############################################################################
@@ -403,10 +399,10 @@ header "13. Service Mesh 3 (Istio)"
 ISTIOD_PODS=$(oc get pods -A --no-headers -l app=istiod 2>/dev/null | grep Running | wc -l | tr -d ' ')
 if [[ "$ISTIOD_PODS" -gt 0 ]]; then
   check_pass "istiod: $ISTIOD_PODS pod(s) running"
-# else Temporaly commented. Not needed in llmd-intro
-#   check_warn "No istiod pods found running"
-#   echo -e "     ${CYAN}Info:${NC} istiod may take a few minutes to start after DSC creation."
-#   echo -e "     ${CYAN}Check:${NC} oc get pods -A -l app=istiod"
+else
+  check_warn "No istiod pods found running"
+  echo -e "     ${CYAN}Info:${NC} istiod may take a few minutes to start after DSC creation."
+  echo -e "     ${CYAN}Check:${NC} oc get pods -A -l app=istiod"
 fi
 
 if oc get crd istios.sailoperator.io &>/dev/null 2>&1; then
@@ -414,7 +410,7 @@ if oc get crd istios.sailoperator.io &>/dev/null 2>&1; then
   if [[ -n "$ISTIO_CR" ]]; then
     ISTIO_NAME=$(echo "$ISTIO_CR" | awk '{print $2}')
     check_pass "Istio CR exists: $ISTIO_NAME"
-#  else Temporaly commented. Not needed in llmd-intro
+#  else Temporaly commented. Not needed in llmd-intro GE
 #    check_warn "Istio CRD exists but no Istio CR found yet"
   fi
 else
@@ -735,19 +731,20 @@ fi # end sim-stack checks
 echo ""
 header "Summary"
 
+if [[ "$MODE" == "pre" ]]; then
+  echo -e "${CYAN}Pre-install checks only (1-8). Run without flags after installing RHOAI for full validation.${NC}"
+elif [[ "$MODE" == "post" ]]; then
+  echo -e "${CYAN}Post-install checks only (9-17).${NC}"
+elif [[ "$MODE" == "sim" ]]; then
+  echo -e "${CYAN}Sim-stack checks only (18-25).${NC}"
+fi
+
 if [[ $FAIL -eq 0 && $WARN -eq 0 ]]; then
-  if [[ "$MODE" == "pre" ]]; then
-    echo -e "${GREEN}Pre-install checks completed [OK]${NC}"
-  elif [[ "$MODE" == "post" ]]; then
-    echo -e "${GREEN}Post-install checks completed [OK]${NC}"
-  elif [[ "$MODE" == "sim" ]]; then
-    echo -e "${GREEN}Simulator checks completed [OK]${NC}"
-  else
-    echo -e "${GREEN}All checks completed [OK]${NC}"
-  fi
+  echo -e "${GREEN}All $PASS checks passed. Your cluster is ready for the llm-d course.${NC}"
 elif [[ $FAIL -eq 0 ]]; then
-  echo -e "${GREEN}$PASS checks passed${NC}, ${YELLOW}$WARN warning(s)${NC}. Review the warnings above."
+  echo -e "${GREEN}$PASS checks passed${NC}, ${YELLOW}$WARN warning(s)${NC}. Cluster is usable but review the warnings above."
 else
   echo -e "${RED}$FAIL check(s) failed${NC}, $PASS passed, $WARN warning(s). Fix the issues above before continuing."
 fi
 echo ""
+
