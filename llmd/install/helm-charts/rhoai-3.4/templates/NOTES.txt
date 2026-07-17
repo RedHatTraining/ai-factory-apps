@@ -32,33 +32,3 @@ User Workload Monitoring: enabled via cluster-monitoring-config ConfigMap
 
 NOTE: The DataScienceCluster CR is NOT applied by this chart.
       You must apply it separately after all operators reach Succeeded.
-
-Next steps:
-
-1. Wait for all operators to reach "Succeeded":
-
-   watch "oc get csv -A --no-headers | \
-     grep -E 'nfd|serverless|authorino|pipeline|rhods|custom-metrics|servicemesh' | \
-     awk '{printf \"%-55s %s\n\", \$2, \$NF}'"
-
-2. Verify the DSCI was auto-created by the RHOAI operator:
-
-   oc get dsci
-
-3. Apply the DataScienceCluster:
-
-   oc apply -f helm-charts/rhoai-3.4/post-install/dsc.yaml
-
-4. Wait for DSC to be ready (3-5 minutes):
-
-   oc wait datasciencecluster default-dsc \
-     --for=jsonpath='{.status.phase}'=Ready --timeout=300s
-
-5. Verify RHOAI controllers are running:
-
-   oc get pods -n redhat-ods-applications \
-     -l 'app.kubernetes.io/name in (kserve-controller-manager,llmisvc-controller-manager,workload-variant-autoscaler)'
-
-6. Run full validation:
-
-   bash scripts/check-env.sh

@@ -410,8 +410,8 @@ if oc get crd istios.sailoperator.io &>/dev/null 2>&1; then
   if [[ -n "$ISTIO_CR" ]]; then
     ISTIO_NAME=$(echo "$ISTIO_CR" | awk '{print $2}')
     check_pass "Istio CR exists: $ISTIO_NAME"
-  else
-    check_warn "Istio CRD exists but no Istio CR found yet"
+#  else Temporaly commented. Not needed in llmd-intro GE
+#    check_warn "Istio CRD exists but no Istio CR found yet"
   fi
 else
   SM3_CSV=$(oc get csv -A --no-headers 2>/dev/null | grep servicemesh | grep Succeeded | head -1)
