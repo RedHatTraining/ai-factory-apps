@@ -6,14 +6,14 @@
 # (installing the RHOAI operator stack via Helm).
 #
 # What this script removes:
-#   - Appendix A: AuthPolicy, TLSPolicy, ClusterIssuer, Kuadrant CR
-#   - Module 5: PrometheusRule alerts, curl-helper pod, local must-gather artifacts
-#   - Module 4: VariantAutoscaling, ScaledObject, InferenceObjectives, KEDA auth
-#   - Module 3: Prefill/Decode deployments, node labels (llm-d.ai/role)
-#   - Module 2: ORIGINAL_DST EnvoyFilter
-#   - Module 1: Gateway, ext_proc EnvoyFilter, DestinationRule, HTTPRoute, Route
-#   - Phase 0.3: Helm release llm-d-sim (simulator, EPP, InferencePool, monitors)
-#   - Phase 0.2: DataScienceCluster, DSCInitialization, Helm release rhoai-operators
+#   - AuthPolicy, TLSPolicy, ClusterIssuer, Kuadrant CR
+#   - PrometheusRule alerts, curl-helper pod, local must-gather artifacts
+#   - VariantAutoscaling, ScaledObject, InferenceObjectives, KEDA auth
+#   - Prefill/Decode deployments, node labels (llm-d.ai/role)
+#   - ORIGINAL_DST EnvoyFilter
+#   - Gateway, ext_proc EnvoyFilter, DestinationRule, HTTPRoute, Route
+#     * Phase 0.3: Helm release llm-d-sim (simulator, EPP, InferencePool, monitors)
+#     * Phase 0.2: DataScienceCluster, DSCInitialization, Helm release rhoai-operators
 #
 # What this script does NOT touch:
 #   - Pre-existing operators (subscriptions/namespaces the Helm chart skipped
@@ -73,10 +73,10 @@ fi
 ok "Cluster API reachable"
 
 ###############################################################################
-# 1 — Remove Appendix A security resources
+# 1 — Remove security resources
 ###############################################################################
 
-step "1. Remove Appendix A security resources"
+step "1. Remove security resources"
 
 if oc get ns llm-d-lab &>/dev/null; then
   oc delete authpolicy llm-d-lab-auth-policy -n llm-d-lab \
@@ -111,10 +111,10 @@ else
 fi
 
 ###############################################################################
-# 2 — Remove Module 5 resources (monitoring alerts)
+# 2 — Remove Monitoring resources (monitoring alerts)
 ###############################################################################
 
-step "2. Remove Module 5 resources"
+step "2. Remove Monitoring resources"
 
 if oc get ns llm-d-lab &>/dev/null; then
   oc delete prometheusrule llm-d-inference-alerts -n llm-d-lab \
@@ -130,10 +130,10 @@ rm -rf must-gather.local.* must-gather-llm-d.tar.gz 2>/dev/null || true
 ok "Local must-gather artifacts cleaned"
 
 ###############################################################################
-# 3 — Remove Module 4 resources (autoscaling, priority, KEDA auth)
+# 3 — Remove autoscaling resources (autoscaling, priority, KEDA auth)
 ###############################################################################
 
-step "3. Remove Module 4 resources"
+step "3. Remove autoscaling resources"
 
 if oc get ns llm-d-lab &>/dev/null; then
   oc delete va llm-d-sim-va -n llm-d-lab \
@@ -167,7 +167,7 @@ fi
 ok "KEDA auth chain removed"
 
 ###############################################################################
-# 4 — Remove Module 3 resources (disaggregated P/D, node labels)
+# 4 — Remove Pre-fill and Decode resources (disaggregated P/D, node labels)
 ###############################################################################
 
 step "4. Remove Module 3 resources"
@@ -191,10 +191,10 @@ else
 fi
 
 ###############################################################################
-# 5 — Remove Module 1 Gateway resources
+# 5 — Remove Gateway and routing resources
 ###############################################################################
 
-step "5. Remove Module 1-2 Gateway and routing resources"
+step "5. Remove Gateway and routing resources"
 
 if oc get ns llm-d-lab &>/dev/null; then
   oc delete route llm-d-lab-gateway -n llm-d-lab \
@@ -238,8 +238,10 @@ if oc get ns llm-d-lab &>/dev/null; then
   oc delete ns llm-d-lab --timeout=120s 2>/dev/null \
     && ok "Deleted llm-d-lab" \
     || warn "llm-d-lab deletion timed out — may still be terminating"
+  oc project default
 else
   ok "llm-d-lab already gone"
+  oc project default
 fi
 
 ###############################################################################
