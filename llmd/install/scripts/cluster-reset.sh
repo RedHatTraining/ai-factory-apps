@@ -235,13 +235,13 @@ fi
 step "7. Delete llm-d-lab namespace"
 
 if oc get ns llm-d-lab &>/dev/null; then
+  oc project default
   oc delete ns llm-d-lab --timeout=120s 2>/dev/null \
     && ok "Deleted llm-d-lab" \
     || warn "llm-d-lab deletion timed out — may still be terminating"
-  oc project default
 else
-  ok "llm-d-lab already gone"
   oc project default
+  ok "llm-d-lab already gone"
 fi
 
 ###############################################################################
