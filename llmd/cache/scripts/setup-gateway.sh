@@ -12,7 +12,63 @@
 set -euo pipefail
 
 NAMESPACE="llm-d-lab"
+INGRESS_NS="openshift-ingress"
 YAML_DIR="$(cd "$(dirname "$0")/../yaml" && pwd)"
+ISTIO_TARGET_VERSION="v1.30.1"
+
+###############################################################################
+# Step 0: Verify Istio is healthy (patch version if needed)
+###############################################################################
+
+echo "Checking Istio gateway status..."
+
+ISTIO_STATE=$(oc get istio openshift-gateway -n "${INGRESS_NS}" \
+  -o jsonpath='{.status.state}' 2>/dev/null || echo "Unknown")
+
+istiod_count() {
+  oc get pods -n "${INGRESS_NS}" -l app=istiod \
+    --no-headers 2>/dev/null | grep -c Running 2>/dev/null || true
+}
+
+if [ "${ISTIO_STATE}" = "Healthy" ]; then
+  echo "  Istio CR is Healthy."
+else
+  ISTIOD_RUNNING=$(istiod_count)
+
+  if [ "${ISTIOD_RUNNING:-0}" -eq 0 ]; then
+    echo "  Istio CR state: ${ISTIO_STATE} — istiod not running."
+    echo "  Patching Istio version to ${ISTIO_TARGET_VERSION}..."
+    oc patch istio openshift-gateway -n "${INGRESS_NS}" \
+      --type merge -p "{\"spec\":{\"version\":\"${ISTIO_TARGET_VERSION}\"}}" 2>/dev/null || true
+
+    echo "  Waiting for istiod pod (up to 90s)..."
+    for i in $(seq 1 18); do
+      ISTIOD_RUNNING=$(istiod_count)
+      if [ "${ISTIOD_RUNNING:-0}" -gt 0 ]; then
+        break
+      fi
+      sleep 5
+    done
+
+    if [ "${ISTIOD_RUNNING:-0}" -gt 0 ]; then
+      echo "  istiod is running."
+    else
+      echo "  ERROR: istiod did not start. Check: oc get pods -n ${INGRESS_NS} -l app=istiod"
+      exit 1
+    fi
+  else
+    echo "  Istio CR state: ${ISTIO_STATE} (istiod is running — continuing)."
+  fi
+fi
+
+REV_VERSION=$(oc get istiorevision -A --no-headers \
+  -o custom-columns='VERSION:.spec.version' 2>/dev/null | head -1 || echo "unknown")
+echo "  IstioRevision version: ${REV_VERSION}"
+echo ""
+
+###############################################################################
+# Step 1: Gateway, ext_proc, HTTPRoute, Route
+###############################################################################
 
 echo "Applying Gateway configuration..."
 oc apply -f "${YAML_DIR}/gateway-config.yaml" -n "${NAMESPACE}"
@@ -38,19 +94,6 @@ sleep 5
 STATUS=$(oc get httproute llm-d-sim-route -n "${NAMESPACE}" \
   -o jsonpath='{.status.parents[0].conditions[?(@.type=="Accepted")].status}' 2>/dev/null || echo "Unknown")
 echo "HTTPRoute Accepted: ${STATUS}"
-
-echo ""
-ROUTE_URL=$(oc get route llm-d-lab-gateway -n "${NAMESPACE}" \
-  -o jsonpath='{.status.ingress[0].host}' 2>/dev/null || echo "")
-if [ -n "${ROUTE_URL}" ]; then
-  echo "Gateway URL: ${ROUTE_URL}"
-  echo ""
-  echo "Export it with:"
-  echo "  export ROUTE_URL=${ROUTE_URL}"
-else
-  echo "WARNING: Route URL not available yet. Check with:"
-  echo "  oc get route llm-d-lab-gateway -n ${NAMESPACE}"
-fi
 
 echo ""
 echo "Networking setup complete."
