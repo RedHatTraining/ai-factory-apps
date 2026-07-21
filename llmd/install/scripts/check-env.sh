@@ -403,10 +403,10 @@ header "13. Service Mesh 3 (Istio)"
 ISTIOD_PODS=$(oc get pods -A --no-headers -l app=istiod 2>/dev/null | grep Running | wc -l | tr -d ' ')
 if [[ "$ISTIOD_PODS" -gt 0 ]]; then
   check_pass "istiod: $ISTIOD_PODS pod(s) running"
-else
-  check_warn "No istiod pods found running"
-  echo -e "     ${CYAN}Info:${NC} istiod may take a few minutes to start after DSC creation."
-  echo -e "     ${CYAN}Check:${NC} oc get pods -A -l app=istiod"
+# else Temporaly commented. Not needed in llmd-intro
+#   check_warn "No istiod pods found running"
+#   echo -e "     ${CYAN}Info:${NC} istiod may take a few minutes to start after DSC creation."
+#   echo -e "     ${CYAN}Check:${NC} oc get pods -A -l app=istiod"
 fi
 
 if oc get crd istios.sailoperator.io &>/dev/null 2>&1; then
