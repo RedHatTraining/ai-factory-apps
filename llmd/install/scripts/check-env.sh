@@ -72,7 +72,7 @@ MIN_CPU=4
 MIN_MEM_GIB=14
 LAB_NAMESPACE="llm-d-lab"
 HELM_RELEASE_PREFIX="llm-d"
-SIM_IMAGE="quay.io/rsriniva/llm-d-sim:v0.9.2-dataset"
+SIM_IMAGE="quay.io/redhattraining/llm-d-sim:v0.9.2-dataset"
 
 # Parse arguments
 MODE="all"
