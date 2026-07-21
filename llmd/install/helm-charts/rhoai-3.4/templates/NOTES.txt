@@ -1,0 +1,34 @@
+RHOAI 3.4 operator installation for the llm-d distributed inference course.
+
+Operators installed:
+{{- if .Values.nfd.enabled }}
+  - Node Feature Discovery (NFD) — {{ .Values.nfd.namespace }}
+{{- end }}
+{{- if .Values.serverless.enabled }}
+  - OpenShift Serverless (Knative) — {{ .Values.serverless.namespace }}
+{{- end }}
+{{- if .Values.authorino.enabled }}
+  - Authorino — openshift-operators
+{{- end }}
+{{- if .Values.pipelines.enabled }}
+  - OpenShift Pipelines — openshift-operators
+{{- end }}
+{{- if .Values.servicemesh3.enabled }}
+  - Red Hat OpenShift Service Mesh 3 — openshift-operators
+{{- end }}
+{{- if .Values.keda.enabled }}
+  - Custom Metrics Autoscaler (KEDA) — {{ .Values.keda.namespace }}
+{{- end }}
+{{- if .Values.kuadrant.enabled }}
+  - Red Hat Connectivity Link (Kuadrant) — {{ .Values.kuadrant.namespace }}
+{{- end }}
+{{- if .Values.rhoai.enabled }}
+  - Red Hat OpenShift AI (RHOAI) — {{ .Values.rhoai.namespace }}
+{{- end }}
+{{- if .Values.monitoring.userWorkload.enabled }}
+
+User Workload Monitoring: enabled via cluster-monitoring-config ConfigMap
+{{- end }}
+
+NOTE: The DataScienceCluster CR is NOT applied by this chart.
+      You must apply it separately after all operators reach Succeeded.

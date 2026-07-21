@@ -1,0 +1,12 @@
+{{- if and .Values.monitoring.userWorkload.enabled (not (lookup "v1" "ConfigMap" "openshift-monitoring" "cluster-monitoring-config")) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+  labels:
+    {{- include "rhoai.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    enableUserWorkload: true
+{{- end }}
