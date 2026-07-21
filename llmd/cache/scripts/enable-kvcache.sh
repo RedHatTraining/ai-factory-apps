@@ -42,11 +42,11 @@ oc rollout status deployment/llm-d-sim -n "${NAMESPACE}" --timeout=600s
 
 echo ""
 echo "Verifying KV cache is active..."
-IPS=($(oc get pods -n "${NAMESPACE}" -l app=llm-d-sim --no-headers \
-  -o custom-columns=IP:.status.podIP))
+POD_IP=$(oc get pods -n "${NAMESPACE}" -l app=llm-d-sim --no-headers \
+  -o custom-columns=IP:.status.podIP | head -1)
 
 oc exec deploy/llm-d-sim-epp -n "${NAMESPACE}" -- \
-  curl -s "http://${IPS[0]}:8000/metrics" 2>/dev/null \
+  curl -s "http://${POD_IP}:8000/metrics" 2>/dev/null \
   | grep -E 'cache_config_info|kv_cache_usage'
 
 echo ""
