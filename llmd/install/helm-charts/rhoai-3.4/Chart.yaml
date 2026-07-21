@@ -1,6 +1,0 @@
-apiVersion: v2
-name: rhoai-3.4-operators
-description: Installs RHOAI 3.4 and dependency operators for the llm-d distributed inference course on OpenShift
-type: application
-version: 1.0.0
-appVersion: "3.4.0"

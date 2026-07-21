@@ -1,8 +1,0 @@
-apiVersion: v2
-name: llm-d-sim-stack
-description: >-
-  Deploys the llm-d inference simulator stack — the same resources
-  LLMInferenceService would auto-create, with the simulator replacing vLLM+GPU.
-type: application
-version: 1.0.0
-appVersion: "0.9.2"

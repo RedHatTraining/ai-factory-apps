@@ -1,9 +1,0 @@
-{{- if and .Values.keda.enabled (not (lookup "v1" "Namespace" "" .Values.keda.namespace)) }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.keda.namespace }}
-  labels:
-    openshift.io/cluster-monitoring: "true"
-    {{- include "rhoai.labels" . | nindent 4 }}
-{{- end }}
