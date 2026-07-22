@@ -15,10 +15,6 @@ NAMESPACE="llm-d-lab"
 echo "Patching simulator deployment to enable KV cache..."
 
 oc patch deployment llm-d-sim -n "${NAMESPACE}" --type=json -p='[
-  {"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{
-    "name":"POD_IP",
-    "valueFrom":{"fieldRef":{"fieldPath":"status.podIP"}}
-  }},
   {"op":"replace","path":"/spec/template/spec/containers/0/args","value":[
     "--port=8000",
     "--model=Qwen/Qwen2.5-0.5B-Instruct",

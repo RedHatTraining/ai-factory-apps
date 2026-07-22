@@ -132,28 +132,6 @@ oc patch deployment llm-d-sim -n "${NAMESPACE}" --type=json -p='[
   ]}
 ]' 2>/dev/null && ok "Simulator args restored" || ok "Simulator args already at baseline"
 
-ENV_JSON=$(oc get deployment llm-d-sim -n "${NAMESPACE}" \
-  -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{" "}{end}' 2>/dev/null || true)
-
-POD_IP_INDEX=""
-IDX=0
-for name in ${ENV_JSON}; do
-  if [[ "${name}" == "POD_IP" ]]; then
-    POD_IP_INDEX="${IDX}"
-    break
-  fi
-  IDX=$((IDX + 1))
-done
-
-if [[ -n "${POD_IP_INDEX}" ]]; then
-  oc patch deployment llm-d-sim -n "${NAMESPACE}" --type=json \
-    -p="[{\"op\":\"remove\",\"path\":\"/spec/template/spec/containers/0/env/${POD_IP_INDEX}\"}]" 2>/dev/null \
-    && ok "Removed POD_IP env var" \
-    || warn "Could not remove POD_IP env var"
-else
-  ok "POD_IP env var not present"
-fi
-
 info "Waiting for simulator rollout..."
 oc rollout status deployment/llm-d-sim -n "${NAMESPACE}" --timeout=600s
 ok "Simulator pods rolled out"
