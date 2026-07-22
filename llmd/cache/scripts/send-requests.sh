@@ -61,7 +61,7 @@ for i in $(seq 1 "${COUNT}"); do
       -H "Content-Type: application/json" \
       -d "${BODY}" 2>/dev/null)
   else
-    RESPONSE=$(curl -sk -D - "https://${ROUTE_URL}/v1/chat/completions" \
+    RESPONSE=$(curl -sk --max-time 15  -D - "https://${ROUTE_URL}/v1/chat/completions" \
       -H "Content-Type: application/json" \
       -d "${BODY}" 2>/dev/null)
   fi
