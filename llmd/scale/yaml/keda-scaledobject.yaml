@@ -1,0 +1,43 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: llm-d-sim-keda
+  namespace: llm-d-lab
+spec:
+  scaleTargetRef:
+    name: llm-d-sim
+  minReplicaCount: 3
+  maxReplicaCount: 5
+  pollingInterval: 5
+  cooldownPeriod: 60
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          selectPolicy: Max
+          policies:
+          - type: Pods
+            value: 10
+            periodSeconds: 150
+        scaleDown:
+          stabilizationWindowSeconds: 60
+          selectPolicy: Max
+          policies:
+          - type: Pods
+            value: 10
+            periodSeconds: 150
+  triggers:
+  - type: prometheus
+    metricType: Value
+    authenticationRef:
+      name: ai-inference-keda-thanos
+      kind: ClusterTriggerAuthentication
+    metadata:
+      serverAddress: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
+      query: |
+        avg(kserve_vllm:kv_cache_usage_perc{namespace="llm-d-lab"})
+      threshold: "0.8"
+      activationThreshold: "0.01"
+      unsafeSsl: "true"
+      authModes: "bearer"

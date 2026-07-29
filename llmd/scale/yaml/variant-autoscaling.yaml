@@ -1,0 +1,12 @@
+apiVersion: llmd.ai/v1alpha1
+kind: VariantAutoscaling
+metadata:
+  name: llm-d-sim-va
+  namespace: llm-d-lab
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: llm-d-sim
+  modelID: "Qwen/Qwen2.5-0.5B-Instruct"
+  minReplicas: 3
+  maxReplicas: 5
