@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAB_PROJECT="serving-openvino"
-WORKBENCH_NAME="serving-openvino-wb"
+LAB_PROJECT="serving-predictive"
+WORKBENCH_NAME="serving-predictive-wb"
 
 command -v oc &>/dev/null  || { echo "[FAIL] oc is not installed."; exit 1; }
 oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
@@ -26,9 +26,6 @@ echo "[INFO] Deploying MinIO..."
 oc apply -f "$SCRIPT_DIR/0-minio.yaml"
 oc rollout status deployment/minio -n $LAB_PROJECT --timeout=120s
 
-MINIO_ROUTE="https://$(oc get route minio-api -n $LAB_PROJECT -o jsonpath='{.spec.host}')"
-echo "[INFO] MinIO route: $MINIO_ROUTE"
-
 echo "[INFO] Creating S3 bucket..."
 BUCKET="openvino-models"
 oc exec deployment/minio -n $LAB_PROJECT -- mkdir -p /data/$BUCKET
@@ -37,17 +34,20 @@ echo "[INFO] Created bucket: $BUCKET"
 # ── 3. S3 data connection ────────────────────────────────────────────────────
 
 echo "[INFO] Creating S3 data connection..."
-sed "s|https://minio-api-serving-openvino.apps.placeholder.opentlc.com|${MINIO_ROUTE}|" \
-  "$SCRIPT_DIR/1-data-connection.yaml" | oc apply -f -
+oc apply -f "$SCRIPT_DIR/1-data-connection.yaml"
 
 # ── 4. Grant workbench SA access to secrets and routes ─────────────────────────
 
 echo "[INFO] Granting workbench permissions..."
-oc adm policy add-role-to-user view \
-  system:serviceaccount:$LAB_PROJECT:$WORKBENCH_NAME -n $LAB_PROJECT
+for SA in default $WORKBENCH_NAME; do
+  oc adm policy add-role-to-user view \
+    system:serviceaccount:$LAB_PROJECT:$SA -n $LAB_PROJECT 2>/dev/null || true
+done
 oc create role secret-reader --verb=get,list --resource=secrets -n $LAB_PROJECT 2>/dev/null || true
-oc create rolebinding wb-secret-reader --role=secret-reader \
-  --serviceaccount=$LAB_PROJECT:$WORKBENCH_NAME -n $LAB_PROJECT 2>/dev/null || true
+for SA in default $WORKBENCH_NAME; do
+  oc create rolebinding "${SA}-secret-reader" --role=secret-reader \
+    --serviceaccount=$LAB_PROJECT:$SA -n $LAB_PROJECT 2>/dev/null || true
+done
 
 # ── 5. Workbench ─────────────────────────────────────────────────────────────
 

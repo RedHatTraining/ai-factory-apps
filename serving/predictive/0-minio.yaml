@@ -3,7 +3,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: minio-pvc
-  namespace: serving-openvino
+  namespace: serving-predictive
 spec:
   accessModes:
     - ReadWriteOnce
@@ -15,7 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: serving-openvino
+  namespace: serving-predictive
 spec:
   replicas: 1
   selector:
@@ -57,7 +57,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio
-  namespace: serving-openvino
+  namespace: serving-predictive
 spec:
   selector:
     app: minio
@@ -68,18 +68,3 @@ spec:
     - name: console
       port: 9001
       targetPort: 9001
----
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: minio-api
-  namespace: serving-openvino
-spec:
-  to:
-    kind: Service
-    name: minio
-  port:
-    targetPort: api
-  tls:
-    termination: edge
-    insecureEdgeTerminationPolicy: Redirect

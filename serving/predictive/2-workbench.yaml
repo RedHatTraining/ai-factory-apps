@@ -2,8 +2,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: serving-openvino-wb
-  namespace: serving-openvino
+  name: serving-predictive-wb
+  namespace: serving-predictive
   labels:
     opendatahub.io/dashboard: "true"
 spec:
@@ -16,10 +16,10 @@ spec:
 apiVersion: kubeflow.org/v1
 kind: Notebook
 metadata:
-  name: serving-openvino-wb
-  namespace: serving-openvino
+  name: serving-predictive-wb
+  namespace: serving-predictive
   labels:
-    app: serving-openvino-wb
+    app: serving-predictive-wb
     opendatahub.io/dashboard: "true"
     opendatahub.io/odh-managed: "true"
   annotations:
@@ -30,7 +30,7 @@ spec:
   template:
     spec:
       containers:
-        - name: serving-openvino-wb
+        - name: serving-predictive-wb
           image: image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:3.4
           resources:
             requests:
@@ -55,4 +55,4 @@ spec:
       volumes:
         - name: notebook-data
           persistentVolumeClaim:
-            claimName: serving-openvino-wb
+            claimName: serving-predictive-wb

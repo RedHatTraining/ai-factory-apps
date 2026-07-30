@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LAB_PROJECT="serving-openvino"
+LAB_PROJECT="serving-predictive"
 
 command -v oc &>/dev/null  || { echo "[FAIL] oc is not installed."; exit 1; }
 oc whoami &>/dev/null || { echo "[FAIL] Not logged in. Run: oc login -u admin -p PASSWORD https://API_URL"; exit 1; }
