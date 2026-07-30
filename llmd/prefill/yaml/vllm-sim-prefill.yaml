@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-d-sim-prefill
+  namespace: llm-d-lab
+  labels:
+    app: llm-d-sim
+    llm-d.ai/role: prefill
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-d-sim
+      llm-d.ai/role: prefill
+  template:
+    metadata:
+      labels:
+        app: llm-d-sim
+        llm-d.ai/role: prefill
+    spec:
+      nodeSelector:
+        llm-d.ai/role: prefill
+      initContainers:
+        - name: vllm-render
+          image: vllm/vllm-openai-cpu:v0.21.0
+          restartPolicy: Always
+          command: ["vllm", "launch", "render"]
+          args:
+            - "Qwen/Qwen2.5-0.5B-Instruct"
+            - "--port=8082"
+          ports:
+            - containerPort: 8082
+              name: render-http
+          env:
+            - name: HF_HOME
+              value: /tmp/hf-cache
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /tmp/hf-cache
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 60
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+      containers:
+        - name: simulator
+          image: quay.io/redhattraining/llm-d-sim:v0.9.2-dataset
+          args:
+            - "--port=8000"
+            - "--model=Qwen/Qwen2.5-0.5B-Instruct"
+            - "--render-url=http://localhost:8082"
+            - "--mode=random"
+            - "--time-to-first-token=100ms"
+            - "--inter-token-latency=50ms"
+            - "--dataset-path=/data/sharegpt-500.sqlite3"
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8000
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              memory: "2Gi"
+      volumes:
+        - name: hf-cache
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-d-sim-prefill
+  namespace: llm-d-lab
+spec:
+  selector:
+    app: llm-d-sim
+    llm-d.ai/role: prefill
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
