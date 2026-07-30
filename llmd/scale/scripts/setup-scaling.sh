@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# setup-scaling.sh — Set up the autoscaling pipeline
+# setup-scaling.sh — Set up the autoscaling configuration
 #
 # Applies the PrometheusRule (metric aliasing), KEDA authentication chain,
 # VariantAutoscaling CR, and KEDA ScaledObject.
@@ -37,10 +37,10 @@ echo "  Route: ${ROUTE_URL}"
 echo ""
 
 ###############################################################################
-# Step 1: Metrics pipeline (PrometheusRule)
+# Step 1: Metrics recording rules (PrometheusRule)
 ###############################################################################
 
-echo "Setting up metrics pipeline..."
+echo "Setting up metrics recording rules..."
 oc apply -f "${YAML_DIR}/prometheus-rule.yaml" -n "${NAMESPACE}"
 
 THANOS_HOST=$(oc get route thanos-querier -n openshift-monitoring \
@@ -122,4 +122,4 @@ echo ""
 # Summary
 ###############################################################################
 
-echo "Autoscaling pipeline ready."
+echo "Autoscaling configuration ready."
