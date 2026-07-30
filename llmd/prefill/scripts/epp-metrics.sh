@@ -11,4 +11,5 @@ EPP_IP=$(oc get pod -n llm-d-lab -l app=llm-d-sim-epp \
 
 # Query the metrics port 9090
 oc exec helper -n llm-d-lab -- \
-  curl -s "http://${EPP_IP}:9090/metrics"
+  curl -s "http://${EPP_IP}:9090/metrics" 2>/dev/null \
+  | grep 'disagg_decision_total' | grep -v '^#'

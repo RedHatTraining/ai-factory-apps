@@ -94,7 +94,7 @@ oc scale deployment -n llm-d-lab llm-d-sim --replicas=3
 
 echo "Waiting for pods..."
 oc wait -n llm-d-lab deployment/llm-d-sim --for=condition=Available --timeout=600s
-oc wait -n llm-d-lab deployment/llm-d-sim-epp --for=condition=Available --timeout=120s
+oc wait -n llm-d-lab deployment/llm-d-sim-epp --for=condition=Available --timeout=180s
 
 echo ""
 echo "=== Verifying cluster state ==="

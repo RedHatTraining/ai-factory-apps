@@ -7,7 +7,7 @@ metadata:
     app: llm-d-sim
     llm-d.ai/role: decode
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: llm-d-sim
@@ -59,6 +59,7 @@ spec:
             - "--kv-connector=nixlv2"
             - "--secure-proxy=false"
             - "--zap-encoder=json"
+            - "--zap-log-level=4"
           ports:
             - containerPort: 8000
               name: http
@@ -69,16 +70,16 @@ spec:
             limits:
               memory: "512Mi"
         - name: simulator
-          image: quay.io/rsriniva/llm-d-sim:v0.9.2-dataset
+          image: quay.io/redhattraining/llm-d-sim:v0.9.2-dataset
           args:
             - "--port=8200"
             - "--model=Qwen/Qwen2.5-0.5B-Instruct"
             - "--render-url=http://localhost:8082"
             - "--mode=random"
-            - "--time-to-first-token=100ms"
-            - "--inter-token-latency=30ms"
+            - "--time-to-first-token=3000ms"
+            - "--kv-cache-transfer-latency=50ms"
+            - "--inter-token-latency=20ms"
             - "--dataset-path=/data/sharegpt-500.sqlite3"
-            - "--dataset-in-memory"
           ports:
             - containerPort: 8200
               name: sim-http
