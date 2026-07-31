@@ -23,7 +23,7 @@ metadata:
     opendatahub.io/dashboard: "true"
     opendatahub.io/odh-managed: "true"
   annotations:
-    notebooks.opendatahub.io/inject-oauth: "true"
+    notebooks.opendatahub.io/inject-auth: "true"
     notebooks.opendatahub.io/last-image-selection: s2i-generic-data-science-notebook:3.4
     notebooks.opendatahub.io/last-image-version-git-commit-selection: d3137ca
     opendatahub.io/image-display-name: "Jupyter | Data Science | CPU | Python 3.12"
