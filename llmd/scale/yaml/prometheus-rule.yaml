@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: vllm-metrics-alias
+  namespace: llm-d-lab
+  labels:
+    monitoring.opendatahub.io/scrape: "true"
+spec:
+  groups:
+  - name: vllm-metric-aliases
+    interval: 15s
+    rules:
+    - record: kserve_vllm:kv_cache_usage_perc
+      expr: vllm:kv_cache_usage_perc
+    - record: kserve_vllm:num_requests_waiting
+      expr: vllm:num_requests_waiting
+    - record: kserve_vllm:num_requests_running
+      expr: vllm:num_requests_running
