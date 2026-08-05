@@ -13,8 +13,24 @@ NAMESPACE="llm-d-lab"
 MAX_ITERATIONS=36
 INTERVAL=5
 
+EXPECTED_BASELINE=3
+
 START_REPLICAS=$(oc get deploy llm-d-sim -n "${NAMESPACE}" \
   -o jsonpath='{.spec.replicas}')
+
+if [[ "${START_REPLICAS}" -gt "${EXPECTED_BASELINE}" ]]; then
+  echo "Scale-up already occurred: replicas=${START_REPLICAS} (baseline is ${EXPECTED_BASELINE})."
+  echo ""
+  echo "Waiting for all ${START_REPLICAS} pods to become Ready..."
+  oc wait --for=condition=Ready pod -l app=llm-d-sim \
+    -n "${NAMESPACE}" --timeout=180s
+  echo ""
+  echo "All ${START_REPLICAS} pods are Ready."
+  echo ""
+  echo "Pods:"
+  oc get pods -n "${NAMESPACE}" -l app=llm-d-sim --no-headers
+  exit 0
+fi
 
 echo "Watching for scale-up event (checking every ${INTERVAL}s)..."
 echo "Starting replicas: ${START_REPLICAS}"
