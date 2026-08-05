@@ -10,8 +10,8 @@
 set -euo pipefail
 
 NAMESPACE="llm-d-lab"
-MAX_ITERATIONS=12
-INTERVAL=15
+MAX_ITERATIONS=36
+INTERVAL=5
 
 START_REPLICAS=$(oc get deploy llm-d-sim -n "${NAMESPACE}" \
   -o jsonpath='{.spec.replicas}')
@@ -23,7 +23,6 @@ echo ""
 PHASE="waiting-for-active"
 
 for i in $(seq 1 "${MAX_ITERATIONS}"); do
-  sleep "${INTERVAL}"
 
   REPLICAS=$(oc get deploy llm-d-sim -n "${NAMESPACE}" \
     -o jsonpath='{.spec.replicas}')
@@ -63,6 +62,7 @@ for i in $(seq 1 "${MAX_ITERATIONS}"); do
     oc get pods -n "${NAMESPACE}" -l app=llm-d-sim --no-headers
     exit 0
   fi
+  sleep "${INTERVAL}"
 done
 
 echo ""
