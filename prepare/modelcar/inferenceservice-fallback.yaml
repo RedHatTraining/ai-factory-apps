@@ -1,0 +1,43 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: qwen3-modelcar
+  namespace: prepare-modelcar
+  annotations:
+    opendatahub.io/hardware-profile-name: gpu-profile
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+    opendatahub.io/model-type: generative
+    openshift.io/display-name: qwen3-modelcar
+    security.opendatahub.io/enable-auth: "false"
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    deploymentStrategy:
+      type: Recreate
+    model:
+      modelFormat:
+        name: vLLM
+      name: ""
+      runtime: vllm-cuda-runtime
+      storageUri: oci://image-registry.openshift-image-registry.svc:5000/prepare-modelcar/fallback-modelcar-qwen3-06b:v1
+      args:
+        - --max-model-len
+        - "4096"
+        - --dtype
+        - float16
+        - --gpu-memory-utilization
+        - "0.90"
+        - --enforce-eager
+      resources:
+        limits:
+          cpu: "4"
+          memory: 16Gi
+          nvidia.com/gpu: "1"
+        requests:
+          cpu: "1"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
