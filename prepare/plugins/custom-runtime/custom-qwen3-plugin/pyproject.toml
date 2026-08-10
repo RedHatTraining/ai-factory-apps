@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "custom-qwen3-plugin"
+version = "0.1.0"
+dependencies = []
+
+[project.entry-points."vllm.general_plugins"]
+custom_qwen3 = "custom_qwen3_plugin:register"
