@@ -237,11 +237,48 @@ fi
 header "12. KEDA Operator"
 ########################################################################
 KEDA_NS="openshift-keda"
-if oc get deployment -n "$KEDA_NS" --no-headers 2>/dev/null | grep -q 'keda'; then
-  check_pass "KEDA operator deployment found in $KEDA_NS"
+KEDA_FOUND=false
+KEDA_WAIT=180
+if ! oc get deployment -n "$KEDA_NS" --no-headers 2>/dev/null | grep -q 'keda'; then
+  info "KEDA operator deployment not yet visible — waiting up to ${KEDA_WAIT}s for OLM to create it..."
+  for ((i=0; i<KEDA_WAIT; i+=5)); do
+    sleep 5
+    if oc get deployment -n "$KEDA_NS" --no-headers 2>/dev/null | grep -q 'keda'; then
+      KEDA_FOUND=true
+      break
+    fi
+  done
 else
-  check_warn "KEDA operator not found in $KEDA_NS"
-  echo -e "     ${CYAN}Note:${NC} KEDA is required for the ScaledObject to work."
+  KEDA_FOUND=true
+fi
+
+if [[ "$KEDA_FOUND" == "true" ]]; then
+  KEDA_DEP=$(oc get deployment -n "$KEDA_NS" --no-headers 2>/dev/null | grep 'keda' | awk '{print $1}' | head -1)
+  KEDA_AVAIL=$(oc get deployment "$KEDA_DEP" -n "$KEDA_NS" \
+    -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null)
+  if [[ "$KEDA_AVAIL" == "True" ]]; then
+    check_pass "KEDA operator deployment $KEDA_DEP is Available in $KEDA_NS"
+  else
+    info "KEDA deployment found but not yet Available — waiting up to ${KEDA_WAIT}s..."
+    AVAIL_OK=false
+    for ((i=0; i<KEDA_WAIT; i+=5)); do
+      sleep 5
+      KEDA_AVAIL=$(oc get deployment "$KEDA_DEP" -n "$KEDA_NS" \
+        -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null)
+      if [[ "$KEDA_AVAIL" == "True" ]]; then
+        AVAIL_OK=true
+        break
+      fi
+    done
+    if [[ "$AVAIL_OK" == "true" ]]; then
+      check_pass "KEDA operator deployment $KEDA_DEP is Available in $KEDA_NS"
+    else
+      check_fail "KEDA operator deployment exists but is not Available"
+      echo -e "     ${CYAN}Fix:${NC} Check the KEDA operator pods: oc get pods -n $KEDA_NS"
+    fi
+  fi
+else
+  check_fail "KEDA operator not found in $KEDA_NS after waiting ${KEDA_WAIT}s"
   echo -e "     ${CYAN}Fix:${NC} Install the Custom Metrics Autoscaler operator from OperatorHub."
 fi
 
