@@ -24,18 +24,9 @@ oc wait pod -n rhoai-model-registries -l app=serving-genai-registry \
 echo "[INFO] Registering model..."
 uv run "$SCRIPT_DIR/register_model.py"
 
-# ── 3. DS project ───────────────────────────────────────────
-# We prefer to make the studen to create the project, to be visible in RHOAI dashboard
-#if ! oc project $LAB_PROJECT &>/dev/null; then
-#  echo "[INFO] Creating project $LAB_PROJECT..."
-#  oc new-project $LAB_PROJECT
-#else
-#  echo "[INFO] Project $LAB_PROJECT already exists, skipping."
-#fi
-
-# ── 4. GPU hardware profile ───────────────────────────────────────────────────
+# ── 3. GPU hardware profile ───────────────────────────────────────────────────
 # This GE uses the gpu-profile already included in RHDP env.
-#echo "[INFO] Applying GPU hardware profile..."
-#oc apply -f "$SCRIPT_DIR/3-gpu-profile.yaml"
+echo "[INFO] Applying GPU hardware profile..."
+oc apply -f "$SCRIPT_DIR/3-gpu-profile.yaml"
 
 echo "[OK] Setup complete."
