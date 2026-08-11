@@ -1,0 +1,4 @@
+FROM registry.access.redhat.com/ubi9/ubi-micro:latest
+RUN mkdir -p /models
+COPY --chown=0:0 model /models/
+RUN chmod -R a=rX /models
