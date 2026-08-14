@@ -1,5 +1,8 @@
-# Stage 1: download model from Hugging Face
-FROM registry.access.redhat.com/ubi9/python-311:latest AS builder
+# Stage 1: download model from Hugging Face.
+# Built on the workstation's native architecture ($BUILDPLATFORM) so the model
+# download is not emulated. The model files are plain data (weights, config,
+# tokenizer) and are architecture-neutral.
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/python-311:latest AS builder
 
 RUN pip install --no-cache-dir huggingface_hub
 
@@ -7,9 +10,17 @@ RUN python -c "\
 from huggingface_hub import snapshot_download; \
 snapshot_download(repo_id='Qwen/Qwen3-0.6B', local_dir='/tmp/model')"
 
-# Stage 2: minimal image with only the model files
-FROM registry.access.redhat.com/ubi9/ubi-micro:latest
+# Fix permissions in the builder (discarded) stage. Doing this here instead of in
+# the final stage keeps the model as a SINGLE layer in the final image: a chmod
+# in the final stage would rewrite every file and duplicate the ~1.5GB of model
+# data into a second layer, doubling the image size and the push time.
+RUN chmod -R a=rX /tmp/model
 
-RUN mkdir -p /models
+# Stage 2: minimal image with only the model files.
+# Pinned to linux/amd64 so the image runs on the AMD64 GPU nodes of
+# RHOAI/OpenShift, even when you build on an Apple Silicon (arm64) Mac.
+# COPY preserves the permissions set above; --chown sets root ownership. No extra
+# RUN layer is needed, so the final image contains just one model layer.
+FROM --platform=linux/amd64 registry.access.redhat.com/ubi9/ubi-micro:latest
+
 COPY --from=builder --chown=0:0 /tmp/model /models/
-RUN chmod -R a=rX /models
