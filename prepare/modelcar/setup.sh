@@ -6,17 +6,24 @@
 # (everything above "Exercise starts here" in the exercise guide):
 #
 #   1. Create and label the exercise namespace
-#   2. Expose the internal image registry (external default route)
-#   3. Wait for the registry route to be admitted
-#   4. Pre-cache the fallback ModelCar image into the internal registry
-#   5. Pre-warm the GPU node's image cache with a short-lived pull pod
-#   6. Create the vLLM ServingRuntime from the RHOAI template
-#   7. Validate the setup
+#   2. Create the vLLM ServingRuntime from the RHOAI template
+#   3. Pre-cache the fallback ModelCar image into the internal registry
+#   4. Pre-warm the GPU node's image cache with a short-lived pull pod
+#   5. Validate the ServingRuntime and fallback image
+#   6. Expose the internal image registry (external default route) and wait for it
+#
+# The registry route is exposed LAST on purpose. Enabling it writes the registry
+# host into the cluster image config, which openshift-apiserver observes and then
+# redeploys to pick up. On a single-replica control plane that redeploy briefly
+# makes template.openshift.io / imagestreams / routes unavailable. Doing all the
+# template and imagestream work FIRST keeps that self-inflicted rollout from
+# disrupting it; the only post-patch call is the route-admission poll, which
+# retries and rides the rollout out.
 #
 # This script MUTATES the cluster. Run it as cluster-admin.
 # Re-running is safe (idempotent): existing resources are reused, not duplicated.
 #
-# The fallback image pre-cache (steps 4-5) is best-effort: if it fails or is
+# The fallback image pre-cache (steps 3-4) is best-effort: if it fails or is
 # slow, setup continues and reports a warning — the essential registry and
 # ServingRuntime are still provisioned.
 #
@@ -25,7 +32,7 @@
 #
 # Environment overrides (raise these on slow lab environments):
 #   OC_REQUEST_TIMEOUT   Per-call oc request cap        (default 30s)
-#   ROUTE_TIMEOUT        Wait for registry route (s)    (default 180)
+#   ROUTE_TIMEOUT        Wait for registry route (s)    (default 300)
 #   ISTAG_TIMEOUT        Wait for fallback import (s)    (default 300)
 #   PREWARM_TIMEOUT      Wait for node pre-warm (s)      (default 600)
 #   POLL_INTERVAL        Poll interval for loops (s)     (default 5)
@@ -73,7 +80,7 @@ INTERNAL_REGISTRY="image-registry.openshift-image-registry.svc:5000"
 FALLBACK_INTERNAL_IMAGE="${INTERNAL_REGISTRY}/${NAMESPACE}/${FALLBACK_ISTAG}"
 
 # Timeouts (seconds) — override via env for slow lab environments.
-ROUTE_TIMEOUT="${ROUTE_TIMEOUT:-180}"
+ROUTE_TIMEOUT="${ROUTE_TIMEOUT:-300}"
 ISTAG_TIMEOUT="${ISTAG_TIMEOUT:-300}"
 PREWARM_TIMEOUT="${PREWARM_TIMEOUT:-600}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
@@ -134,7 +141,7 @@ wait_pod_complete() {
 
 echo ""
 echo -e "${BOLD}ModelCar OCI Exercise — Setup${NC}"
-echo "Preparing namespace, registry, fallback image, and vLLM runtime"
+echo "Preparing namespace, vLLM runtime, fallback image, and registry"
 
 # --- Preconditions ------------------------------------------------------------
 if ! oc whoami &>/dev/null; then
@@ -165,45 +172,43 @@ retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" \
 ok "Labeled namespace (opendatahub.io/dashboard=true, modelmesh-enabled=false)"
 
 ###############################################################################
-header "2. Expose Internal Image Registry"
+header "2. Create vLLM ServingRuntime"
 ###############################################################################
 
-retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" \
-  oc patch configs.imageregistry.operator.openshift.io/cluster \
-    --type merge \
-    -p '{"spec":{"defaultRoute":true}}' >/dev/null \
-  || die "Failed to patch image registry config"
-ok "Requested external default route on the internal registry"
+# Look up the template first, capturing the real error instead of discarding it.
+# This distinguishes a genuinely missing template (RHOAI not installed) from a
+# transient openshift-apiserver error, so the two never get the same message.
+# The lookup is retried: the aggregated apiserver can briefly blip during a
+# rollout, which must not be misreported as "template not found".
+TEMPLATE_ERR=""
+check_template() { TEMPLATE_ERR=$(oc get template "$RUNTIME_TEMPLATE" -n "$RHOAI_NS" 2>&1 >/dev/null); }
+if ! retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" check_template; then
+  case "$TEMPLATE_ERR" in
+    *NotFound*|*"not found"*)
+      die "Template '$RUNTIME_TEMPLATE' not found in $RHOAI_NS — is RHOAI/KServe installed?
+     Check: oc get template -n $RHOAI_NS | grep vllm" ;;
+    *)
+      die "Could not read template '$RUNTIME_TEMPLATE' in $RHOAI_NS after ${RETRY_ATTEMPTS} attempts.
+     This is usually a transient openshift-apiserver issue, not a missing template.
+     Last error: ${TEMPLATE_ERR}
+     Tip: re-run setup.sh, or raise the retry budget: RETRY_ATTEMPTS=12 bash setup.sh" ;;
+  esac
+fi
+ok "Template '$RUNTIME_TEMPLATE' found in $RHOAI_NS"
 
-###############################################################################
-header "3. Wait for Registry Route"
-###############################################################################
-
-# Poll the route's real readiness (Admitted condition), not just the presence of
-# a host — a route object can appear before it is actually served, which is the
-# false positive the naive "does the host exist" check suffers from.
-info "Waiting for the registry route to be admitted (up to ${ROUTE_TIMEOUT}s)..."
-REGISTRY=""
-ADMITTED=""
-for _ in $(seq 1 "$(attempts_for "$ROUTE_TIMEOUT")"); do
-  REGISTRY=$(oc get route default-route -n openshift-image-registry \
-    -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
-  ADMITTED=$(oc get route default-route -n openshift-image-registry \
-    -o jsonpath='{.status.ingress[0].conditions[?(@.type=="Admitted")].status}' 2>/dev/null || echo "")
-  [[ -n "$REGISTRY" && "$ADMITTED" == "True" ]] && break
-  sleep "$POLL_INTERVAL"
-done
-
-if [[ -n "$REGISTRY" && "$ADMITTED" == "True" ]]; then
-  ok "Registry route admitted: $REGISTRY"
+# process | apply is retried as a unit (both go through the aggregated apiserver).
+apply_serving_runtime() {
+  oc process "$RUNTIME_TEMPLATE" -n "$RHOAI_NS" \
+    | oc apply -n "$NAMESPACE" -f - >/dev/null 2>&1
+}
+if retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" apply_serving_runtime; then
+  ok "Applied ServingRuntime '$SERVING_RUNTIME' in $NAMESPACE"
 else
-  die "Registry route not admitted within ${ROUTE_TIMEOUT}s (host='${REGISTRY:-none}', admitted='${ADMITTED:-none}').
-     Check: oc get route default-route -n openshift-image-registry
-     Tip:   re-run with a larger timeout, e.g. ROUTE_TIMEOUT=360 bash setup.sh"
+  die "Failed to create ServingRuntime from template after ${RETRY_ATTEMPTS} attempts"
 fi
 
 ###############################################################################
-header "4. Pre-cache Fallback ModelCar Image (best-effort)"
+header "3. Pre-cache Fallback ModelCar Image (best-effort)"
 ###############################################################################
 
 FALLBACK_READY=false
@@ -243,7 +248,7 @@ else
 fi
 
 ###############################################################################
-header "5. Pre-warm GPU Node Image Cache (best-effort)"
+header "4. Pre-warm GPU Node Image Cache (best-effort)"
 ###############################################################################
 
 if [[ "$FALLBACK_READY" == "true" ]]; then
@@ -291,31 +296,11 @@ else
 fi
 
 ###############################################################################
-header "6. Create vLLM ServingRuntime"
+header "5. Validate ServingRuntime and Fallback Image"
 ###############################################################################
 
-# Retry the lookup: the openshift-apiserver that serves templates can be briefly
-# unavailable (e.g. mid-rollout), which would otherwise be misread as "missing".
-if ! retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" \
-     oc get template "$RUNTIME_TEMPLATE" -n "$RHOAI_NS" &>/dev/null; then
-  die "Template '$RUNTIME_TEMPLATE' not found in $RHOAI_NS after ${RETRY_ATTEMPTS} attempts — is RHOAI/KServe installed?"
-fi
-
-# process | apply is retried as a unit (both go through the aggregated apiserver).
-apply_serving_runtime() {
-  oc process "$RUNTIME_TEMPLATE" -n "$RHOAI_NS" \
-    | oc apply -n "$NAMESPACE" -f - >/dev/null 2>&1
-}
-if retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" apply_serving_runtime; then
-  ok "Applied ServingRuntime '$SERVING_RUNTIME' in $NAMESPACE"
-else
-  die "Failed to create ServingRuntime from template after ${RETRY_ATTEMPTS} attempts"
-fi
-
-###############################################################################
-header "7. Validate Setup"
-###############################################################################
-
+# Validate the template/imagestream work now, while openshift-apiserver is still
+# untouched — before the registry route in the next step triggers its rollout.
 if oc get servingruntime "$SERVING_RUNTIME" -n "$NAMESPACE" &>/dev/null; then
   ok "ServingRuntime '$SERVING_RUNTIME' present"
 else
@@ -329,7 +314,46 @@ else
   DEGRADED=1
 fi
 
-ok "Registry route: $REGISTRY"
+###############################################################################
+header "6. Expose Internal Image Registry"
+###############################################################################
+
+# Done LAST (see the header comment at the top of this file): enabling the
+# default route makes openshift-apiserver redeploy, which briefly disrupts
+# template.openshift.io / imagestreams on single-replica control planes. All
+# such work is already finished above, so the only thing that must ride out the
+# rollout is the route-admission poll below — which it does by retrying.
+retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" \
+  oc patch configs.imageregistry.operator.openshift.io/cluster \
+    --type merge \
+    -p '{"spec":{"defaultRoute":true}}' >/dev/null \
+  || die "Failed to patch image registry config"
+ok "Requested external default route on the internal registry"
+
+# Poll the route's real readiness (Admitted condition), not just the presence of
+# a host — a route object can appear before it is actually served, which is the
+# false positive the naive "does the host exist" check suffers from. This poll
+# also tolerates the openshift-apiserver rollout the patch above just triggered:
+# failed gets return empty and the loop keeps trying until the apiserver is back.
+info "Waiting for the registry route to be admitted (up to ${ROUTE_TIMEOUT}s)..."
+REGISTRY=""
+ADMITTED=""
+for _ in $(seq 1 "$(attempts_for "$ROUTE_TIMEOUT")"); do
+  REGISTRY=$(oc get route default-route -n openshift-image-registry \
+    -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+  ADMITTED=$(oc get route default-route -n openshift-image-registry \
+    -o jsonpath='{.status.ingress[0].conditions[?(@.type=="Admitted")].status}' 2>/dev/null || echo "")
+  [[ -n "$REGISTRY" && "$ADMITTED" == "True" ]] && break
+  sleep "$POLL_INTERVAL"
+done
+
+if [[ -n "$REGISTRY" && "$ADMITTED" == "True" ]]; then
+  ok "Registry route admitted: $REGISTRY"
+else
+  die "Registry route not admitted within ${ROUTE_TIMEOUT}s (host='${REGISTRY:-none}', admitted='${ADMITTED:-none}').
+     Check: oc get route default-route -n openshift-image-registry
+     Tip:   re-run with a larger timeout, e.g. ROUTE_TIMEOUT=480 bash setup.sh"
+fi
 
 echo ""
 echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
