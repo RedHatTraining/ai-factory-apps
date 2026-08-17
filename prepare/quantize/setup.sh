@@ -67,6 +67,14 @@ oc wait --for=jsonpath='{.status.phase}'=Succeeded \
   pod/prewarm-fp8 -n ${PROJECT} --timeout=600s
 oc delete pod prewarm-fp8 -n ${PROJECT}
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "[INFO] Creating GPU hardware profile..."
+if oc get hardwareprofile gpu-profile -n redhat-ods-applications &>/dev/null; then
+    echo "[OK] Hardware profile gpu-profile already exists, updating."
+fi
+oc apply -f "${SCRIPT_DIR}/gpu-profile.yaml"
+
 echo "[INFO] Creating vLLM serving runtime..."
 oc process vllm-cuda-runtime-template \
     -n redhat-ods-applications | oc apply -n ${PROJECT} -f -
