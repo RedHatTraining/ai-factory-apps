@@ -349,6 +349,15 @@ done
 
 if [[ -n "$REGISTRY" && "$ADMITTED" == "True" ]]; then
   ok "Registry route admitted: $REGISTRY"
+
+  # The default HAProxy route timeout is 30s — far too short for pushing a
+  # ~1.5 GB model image over a WAN link. Raise it so `podman push` doesn't
+  # silently hang when HAProxy kills the connection mid-upload.
+  oc annotate route default-route -n openshift-image-registry \
+    haproxy.router.openshift.io/timeout=600s \
+    --overwrite >/dev/null 2>&1 \
+    && ok "Set registry route timeout to 600s (for large image pushes)" \
+    || warn "Could not annotate route timeout (push may be slow)"
 else
   die "Registry route not admitted within ${ROUTE_TIMEOUT}s (host='${REGISTRY:-none}', admitted='${ADMITTED:-none}').
      Check: oc get route default-route -n openshift-image-registry
