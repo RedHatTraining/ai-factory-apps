@@ -12,6 +12,7 @@ metadata:
     serving.kserve.io/deploymentMode: RawDeployment
   labels:
     opendatahub.io/dashboard: "true"
+    networking.kserve.io/visibility: exposed
 spec:
   predictor:
     minReplicas: 1
