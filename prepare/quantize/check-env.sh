@@ -81,7 +81,7 @@ IMAGESTREAM="modelcar-qwen3-06b"
 
 echo ""
 echo -e "${BOLD}Quantize Exercise — Environment Check${NC}"
-echo "Verifying platform prerequisites for building and deploying images"
+
 
 ###############################################################################
 header "1. Cluster Access"
