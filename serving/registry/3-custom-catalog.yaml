@@ -16,7 +16,7 @@ data:
         name: "My Company Custom Models"
         type: "yaml"
         properties:
-          yamlCatalogPath: "/data/user-sources/lab-models.yaml"
+          yamlCatalogPath: "/data/user-model-sources/lab-models.yaml"
         labels:
           - MyCompany Custom
 
