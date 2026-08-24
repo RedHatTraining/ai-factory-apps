@@ -69,6 +69,8 @@ ISTAG_TIMEOUT="${ISTAG_TIMEOUT:-300}"
 PREWARM_TIMEOUT="${PREWARM_TIMEOUT:-600}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
 
+HARDWARE_PROFILE_NAME="gpu-profile"
+
 DEGRADED=0
 
 RETRY_ATTEMPTS="${RETRY_ATTEMPTS:-6}"
@@ -143,7 +145,56 @@ retry_cmd "$RETRY_ATTEMPTS" "$RETRY_DELAY" \
 ok "Labeled namespace (opendatahub.io/dashboard=true, modelmesh-enabled=false)"
 
 ###############################################################################
-header "2. Import Model Image (best-effort)"
+header "2. GPU Hardware Profile"
+###############################################################################
+
+if cat <<EOF | oc apply -f - >/dev/null 2>&1
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: ${HARDWARE_PROFILE_NAME}
+  namespace: ${RHOAI_NS}
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    opendatahub.io/disabled: "false"
+    opendatahub.io/display-name: gpu-profile
+spec:
+  identifiers:
+  - defaultCount: 500m
+    displayName: CPU
+    identifier: cpu
+    maxCount: 4
+    minCount: 100m
+    resourceType: CPU
+  - defaultCount: 8Gi
+    displayName: Memory
+    identifier: memory
+    maxCount: 12Gi
+    minCount: 1Gi
+    resourceType: Memory
+  - defaultCount: 1
+    displayName: GPU
+    identifier: nvidia.com/gpu
+    maxCount: 1
+    minCount: 1
+    resourceType: Accelerator
+  scheduling:
+    type: Node
+    node:
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+EOF
+then
+  ok "Applied HardwareProfile '${HARDWARE_PROFILE_NAME}' with GPU toleration"
+else
+  die "Failed to create HardwareProfile '${HARDWARE_PROFILE_NAME}'"
+fi
+
+###############################################################################
+header "3. Import Model Image (best-effort)"
 ###############################################################################
 
 MODEL_READY=false
@@ -176,7 +227,7 @@ else
 fi
 
 ###############################################################################
-header "3. Pre-warm GPU Node Image Cache (best-effort)"
+header "4. Pre-warm GPU Node Image Cache (best-effort)"
 ###############################################################################
 
 PREWARM_POD="prewarm-model"
@@ -197,6 +248,13 @@ spec:
     command: ["true"]
   restartPolicy: Never
   terminationGracePeriodSeconds: 0
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+  nodeSelector:
+    node-role.kubernetes.io/worker-gpu: ""
 EOF
   then
     ok "Created pre-warm pod '${PREWARM_POD}'"
@@ -222,7 +280,7 @@ else
 fi
 
 ###############################################################################
-header "4. Create vLLM ServingRuntime"
+header "5. Create vLLM ServingRuntime"
 ###############################################################################
 
 TEMPLATE_ERR=""
