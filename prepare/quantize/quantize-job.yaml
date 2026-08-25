@@ -74,5 +74,9 @@ spec:
       - name: workspace
         persistentVolumeClaim:
           claimName: quantize-workspace
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
       restartPolicy: Never
   backoffLimit: 2

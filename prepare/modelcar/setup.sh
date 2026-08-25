@@ -269,6 +269,12 @@ spec:
     command: ["true"]
   restartPolicy: Never
   terminationGracePeriodSeconds: 0
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  nodeSelector:
+    node-role.kubernetes.io/worker-gpu: ""
 EOF
   then
     ok "Created pre-warm pod"
