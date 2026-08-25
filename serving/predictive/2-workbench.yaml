@@ -27,7 +27,6 @@ metadata:
     notebooks.opendatahub.io/last-image-selection: s2i-generic-data-science-notebook:3.4
     notebooks.opendatahub.io/last-image-version-git-commit-selection: d3137ca
     opendatahub.io/image-display-name: "Jupyter | Data Science | CPU | Python 3.12"
-    opendatahub.io/hardware-profile-name: default-profile
 spec:
   template:
     spec:
@@ -36,7 +35,7 @@ spec:
           image: image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:3.4
           resources:
             requests:
-              cpu: "1"
+              cpu: "500m"
               memory: 4Gi
             limits:
               cpu: "2"

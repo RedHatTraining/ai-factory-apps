@@ -20,6 +20,11 @@ else
   echo "[INFO] Project $LAB_PROJECT already exists, skipping."
 fi
 
+# ── 1b. Free cluster capacity ───────────────────────────────────────────────
+
+echo "[INFO] Scaling RHOAI dashboard to 1 replica to free cluster resources..."
+oc scale deployment rhods-dashboard -n redhat-ods-applications --replicas=1
+
 # ── 2. Deploy MinIO ──────────────────────────────────────────────────────────
 
 echo "[INFO] Deploying MinIO..."
@@ -63,6 +68,7 @@ oc wait pod -n $LAB_PROJECT -l app=$WORKBENCH_NAME \
 
 # ── 6. Clone exercise repo into workbench ─────────────────────────────────────
 
+sleep 10
 echo "[INFO] Cloning exercise repo into workbench..."
 oc exec -n $LAB_PROJECT $WORKBENCH_NAME-0 -- \
   git clone -b RHAI3.4 https://github.com/RedHatTraining/ai-factory-apps.git \
