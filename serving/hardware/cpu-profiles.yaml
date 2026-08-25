@@ -4,28 +4,28 @@ metadata:
   annotations:
     opendatahub.io/dashboard-feature-visibility: '[]'
     opendatahub.io/description: >-
-      A CPU-intensive profile for data preprocessing and non-GPU workloads.
-      Offers 4 CPUs and 8 GiB of memory by default, scaling up to 8 CPUs
-      and 16 GiB of memory.
+      A restricted CPU profile for lightweight tasks and non-GPU workloads.
+      Offers 10m CPU and 1 GiB of memory by default, scaling up to 2 CPUs
+      and 4 GiB of memory.
     opendatahub.io/disabled: "false"
-    opendatahub.io/display-name: High CPU
+    opendatahub.io/display-name: Restricted CPU
     opendatahub.io/managed: "false"
   labels:
     app.kubernetes.io/part-of: hardwareprofile
     app.opendatahub.io/hardwareprofile: "true"
-  name: high-cpu-profile
+  name: restricted-cpu-profile
   namespace: redhat-ods-applications
 spec:
   identifiers:
-  - defaultCount: 4
+  - defaultCount: 10m
     displayName: CPU
     identifier: cpu
-    maxCount: 8
-    minCount: 2
+    maxCount: 2
+    minCount: 10m
     resourceType: CPU
-  - defaultCount: 8Gi
+  - defaultCount: 1Gi
     displayName: Memory
     identifier: memory
-    maxCount: 16Gi
-    minCount: 4Gi
+    maxCount: 4Gi
+    minCount: 512Mi
     resourceType: Memory
