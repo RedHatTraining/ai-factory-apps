@@ -20,11 +20,6 @@ authorino:
   enabled: true
   channel: stable  # Only production channel (alpha also available)
 
-# OpenShift Pipelines (all-namespace operator — installs into openshift-operators)
-pipelines:
-  enabled: true
-  channel: pipelines-1.22  # Most specific channel for version 1.22.x
-
 # Red Hat OpenShift Service Mesh 3 (all-namespace operator — installs into openshift-operators)
 servicemesh3:
   enabled: true

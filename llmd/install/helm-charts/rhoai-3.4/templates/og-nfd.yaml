@@ -1,4 +1,4 @@
-{{- if and .Values.nfd.enabled (not (lookup "operators.coreos.com/v1" "OperatorGroup" .Values.nfd.namespace "openshift-nfd")) }}
+{{- if and .Values.nfd.enabled (not (lookup "operators.coreos.com/v1" "OperatorGroup" .Values.nfd.namespace "").items) }}
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:

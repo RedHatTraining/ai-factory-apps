@@ -1,4 +1,4 @@
-apiVersion: datasciencecluster.opendatahub.io/v1
+apiVersion: datasciencecluster.opendatahub.io/v2
 kind: DataScienceCluster
 metadata:
   name: default-dsc
@@ -7,30 +7,24 @@ metadata:
     app.kubernetes.io/part-of: rhoai-3.4-operators
 spec:
   components:
-    codeflare:
-      managementState: Removed
-    dashboard:
+    aipipelines:
       managementState: Managed
-    datasciencepipelines:
+    dashboard:
       managementState: Managed
     feastoperator:
       managementState: Managed
     kserve:
       managementState: Managed
-      nim:
-        managementState: Managed
       rawDeploymentServiceConfig: "Headed"
-      wva:
-        managementState: Managed
     kueue:
       managementState: Removed
     llamastackoperator:
       managementState: Managed
-    modelmeshserving:
-      managementState: Removed
     modelregistry:
       managementState: Managed
     ray:
+      managementState: Managed
+    trainer:
       managementState: Managed
     trainingoperator:
       managementState: Managed

@@ -1,4 +1,4 @@
-{{- if and .Values.kuadrant.enabled (not (lookup "operators.coreos.com/v1" "OperatorGroup" .Values.kuadrant.namespace "kuadrant-system")) }}
+{{- if and .Values.kuadrant.enabled (not (lookup "operators.coreos.com/v1" "OperatorGroup" .Values.kuadrant.namespace "").items) }}
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:

@@ -1,4 +1,4 @@
-{{- if and .Values.rhoai.enabled (not (lookup "operators.coreos.com/v1" "OperatorGroup" .Values.rhoai.namespace "rhods-operator")) }}
+{{- if and .Values.rhoai.enabled (not (lookup "operators.coreos.com/v1" "OperatorGroup" .Values.rhoai.namespace "").items) }}
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:

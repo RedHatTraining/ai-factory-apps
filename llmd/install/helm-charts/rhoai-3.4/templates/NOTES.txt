@@ -10,9 +10,6 @@ Operators installed:
 {{- if .Values.authorino.enabled }}
   - Authorino — openshift-operators
 {{- end }}
-{{- if .Values.pipelines.enabled }}
-  - OpenShift Pipelines — openshift-operators
-{{- end }}
 {{- if .Values.servicemesh3.enabled }}
   - Red Hat OpenShift Service Mesh 3 — openshift-operators
 {{- end }}
@@ -31,4 +28,11 @@ User Workload Monitoring: enabled via cluster-monitoring-config ConfigMap
 {{- end }}
 
 NOTE: The DataScienceCluster CR is NOT applied by this chart.
-      You must apply it separately after all operators reach Succeeded.
+      You must apply it separately after all operators reach Succeeded:
+
+        oc apply -f helm-charts/rhoai-3.4/post-install/dsc.yaml
+
+      After the DSC is ready, scale the dashboard to 1 replica to free
+      CPU for lab workloads (the default 2 replicas reserve 6.2 CPU):
+
+        oc scale deployment rhods-dashboard -n redhat-ods-applications --replicas=1

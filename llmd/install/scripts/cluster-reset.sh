@@ -22,7 +22,7 @@
 #   - CSVs, CRDs, or InstallPlans (OLM handles those)
 #   - openshift-operators, openshift-monitoring (platform namespaces)
 #
-# ORDERING: CRs with finalizers (DSC, DSCI, KedaController, Kuadrant, etc.)
+# ORDERING: CRs with finalizers (NIM Account, DSC, DSCI, KedaController, Kuadrant, etc.)
 # are deleted WHILE their operators still run so operators process finalizers.
 # Operator subscriptions are removed AFTER all CRs are gone (via helm uninstall).
 # Any orphaned CRs left by Helm removing their operator are cleaned up last.
@@ -265,6 +265,31 @@ else
   ok "DataScienceCluster not found"
 fi
 
+# --- RHOAI: NIM Account (auto-created when NIM is enabled) ---
+# Must be deleted before DSCI so the nim-cleanup-finalizer is processed
+# while the operator is still running. If left behind, it blocks
+# redhat-ods-applications namespace deletion indefinitely.
+if oc api-resources --api-group=nim.opendatahub.io &>/dev/null 2>&1 \
+   && oc api-resources --api-group=nim.opendatahub.io --no-headers 2>/dev/null | grep -q account; then
+  NIM_ACCOUNTS=$(oc get accounts.nim.opendatahub.io -A --no-headers -o name 2>/dev/null || true)
+  if [[ -n "$NIM_ACCOUNTS" ]]; then
+    for acct in $NIM_ACCOUNTS; do
+      NS=$(oc get accounts.nim.opendatahub.io -A --no-headers 2>/dev/null \
+        | grep "$(basename "$acct")" | awk '{print $1}')
+      if ! oc delete "$acct" -n "$NS" --timeout=30s 2>/dev/null; then
+        warn "NIM Account deletion timed out — patching finalizer"
+        oc patch "$acct" -n "$NS" --type=json \
+          -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
+      fi
+    done
+    ok "Deleted NIM Account(s)"
+  else
+    ok "No NIM Accounts found"
+  fi
+else
+  ok "NIM CRD not present — skipping"
+fi
+
 # --- RHOAI: DSCInitialization (auto-created by RHOAI operator) ---
 if oc get dsci default-dsci &>/dev/null 2>&1; then
   oc delete dsci default-dsci --timeout=60s 2>/dev/null \
@@ -371,7 +396,7 @@ fi
 
 # --- Check for any other operator CRs with stuck finalizers ---
 STUCK_FOUND=false
-for res in kedacontroller knativeserving knativeeventing; do
+for res in kedacontroller knativeserving knativeeventing accounts.nim.opendatahub.io; do
   for item in $(oc get "$res" -A --no-headers -o name 2>/dev/null || true); do
     STUCK_FOUND=true
     warn "Found stuck $item — patching finalizer"
