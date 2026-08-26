@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: models-s3
+  namespace: serving-predictive
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/managed: "true"
+  annotations:
+    opendatahub.io/connection-type: s3
+    opendatahub.io/connection-type-protocol: s3
+    openshift.io/display-name: models-s3
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: minio
+  AWS_SECRET_ACCESS_KEY: minio123
+  AWS_S3_ENDPOINT: http://minio.serving-predictive.svc.cluster.local:9000
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_S3_BUCKET: openvino-models

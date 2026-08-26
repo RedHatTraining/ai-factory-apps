@@ -208,4 +208,5 @@ __marimo__/
 .claude
 .vscode
 **/.DS_Store
+serving/predictive/.playwright-cli/
 .omo
