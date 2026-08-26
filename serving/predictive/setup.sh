@@ -44,6 +44,7 @@ oc apply -f "$SCRIPT_DIR/1-data-connection.yaml"
 # ── 4. Grant workbench SA access to secrets and routes ─────────────────────────
 
 echo "[INFO] Granting workbench permissions..."
+oc adm policy add-role-to-user admin user -n $LAB_PROJECT
 for SA in default $WORKBENCH_NAME; do
   oc adm policy add-role-to-user view \
     system:serviceaccount:$LAB_PROJECT:$SA -n $LAB_PROJECT 2>/dev/null || true

@@ -9,6 +9,7 @@ metadata:
     opendatahub.io/managed: "true"
   annotations:
     opendatahub.io/connection-type: s3
+    opendatahub.io/connection-type-protocol: s3
     openshift.io/display-name: models-s3
 type: Opaque
 stringData:
