@@ -16,6 +16,11 @@ spec:
   predictor:
     minReplicas: 1
     maxReplicas: 1
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
     model:
       modelFormat:
         name: vLLM
