@@ -1,0 +1,22 @@
+# Stage 1: download model and patch config.json
+FROM registry.access.redhat.com/ubi9/python-311:latest AS builder
+
+RUN pip install --no-cache-dir huggingface_hub
+
+RUN python -c "\
+from huggingface_hub import snapshot_download; \
+snapshot_download(repo_id='Qwen/Qwen3-0.6B', local_dir='/tmp/model')"
+
+RUN python -c "\
+import json; \
+p = '/tmp/model/config.json'; \
+c = json.load(open(p)); \
+c['architectures'] = ['CustomQwen3ForCausalLM']; \
+json.dump(c, open(p, 'w'), indent=2)"
+
+# Stage 2: minimal image with only the model files
+FROM registry.access.redhat.com/ubi9/ubi-micro:latest
+
+RUN mkdir -p /models
+COPY --from=builder --chown=0:0 /tmp/model /models/
+RUN chmod -R a=rX /models

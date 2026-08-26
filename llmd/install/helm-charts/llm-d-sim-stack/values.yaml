@@ -10,7 +10,7 @@
 
 # --- Simulator (replaces vLLM+GPU Deployment) ---
 simulator:
-  image: quay.io/rsriniva/llm-d-sim:v0.9.2-dataset
+  image: quay.io/redhattraining/llm-d-sim:v0.9.2-dataset
   replicas: 3
   model: Qwen/Qwen2.5-0.5B-Instruct
   port: 8000

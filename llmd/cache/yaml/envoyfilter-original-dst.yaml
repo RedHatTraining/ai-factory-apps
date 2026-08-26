@@ -1,0 +1,42 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: llm-d-original-dst
+  namespace: llm-d-lab
+spec:
+  workloadSelector:
+    labels:
+      gateway.networking.k8s.io/gateway-name: llm-d-lab-gateway
+  configPatches:
+  # Patch 1: Add an ORIGINAL_DST cluster that reads the pod IP:port
+  # from the x-gateway-destination-endpoint header set by EPP.
+  # This is what upstream llm-d uses (see llm-d-router/test/testdata/envoy.yaml)
+  # but RHOAI 3.4's Gateway API integration does not create it.
+  - applyTo: CLUSTER
+    match:
+      context: GATEWAY
+    patch:
+      operation: ADD
+      value:
+        name: llm-d-original-dst
+        type: ORIGINAL_DST
+        connect_timeout: 10s
+        lb_policy: CLUSTER_PROVIDED
+        original_dst_lb_config:
+          use_http_header: true
+          http_header_name: x-gateway-destination-endpoint
+  # Patch 2: Change the route to send traffic to our ORIGINAL_DST cluster
+  # instead of the default Istio EDS cluster (outbound|8000||llm-d-sim...).
+  - applyTo: HTTP_ROUTE
+    match:
+      context: GATEWAY
+      routeConfiguration:
+        vhost:
+          name: "*:443"
+          route:
+            action: ROUTE
+    patch:
+      operation: MERGE
+      value:
+        route:
+          cluster: llm-d-original-dst

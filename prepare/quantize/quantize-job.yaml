@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: quantize-model
+  namespace: prepare-quantize
+spec:
+  template:
+    spec:
+      containers:
+      - name: quantize
+        image: ${LLM_COMPRESSOR_IMAGE}
+        command:
+        - python
+        - -c
+        - |
+          from huggingface_hub import snapshot_download
+          from transformers import AutoModelForCausalLM, AutoTokenizer
+          from llmcompressor import oneshot
+          from llmcompressor.modifiers.quantization import QuantizationModifier
+          import os
+
+          model_id = "Qwen/Qwen3-4B"
+          model_path = "/workspace/qwen3-4b-bf16"
+          output_path = "/workspace/qwen3-4b-fp8"
+
+          print("Downloading model...")
+          snapshot_download(repo_id=model_id, local_dir=model_path)
+
+          print("Loading model...")
+          model = AutoModelForCausalLM.from_pretrained(
+              model_path, torch_dtype="auto", device_map="auto"
+          )
+          tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+          print("Applying FP8 dynamic quantization...")
+          recipe = QuantizationModifier(
+              targets="Linear",
+              scheme="FP8_DYNAMIC",
+              ignore=["lm_head"]
+          )
+          oneshot(model=model, recipe=recipe)
+
+          print("Saving quantized model...")
+          model.save_pretrained(output_path)
+          tokenizer.save_pretrained(output_path)
+
+          original_size = sum(
+              os.path.getsize(os.path.join(dp, f))
+              for dp, dn, filenames in os.walk(model_path)
+              for f in filenames
+          ) / (1024**3)
+          quantized_size = sum(
+              os.path.getsize(os.path.join(dp, f))
+              for dp, dn, filenames in os.walk(output_path)
+              for f in filenames
+          ) / (1024**3)
+
+          print(f"\nOriginal (BF16): {original_size:.1f} GB")
+          print(f"Quantized (FP8): {quantized_size:.1f} GB")
+          print(f"File size reduction: {(1 - quantized_size/original_size)*100:.0f}%")
+        volumeMounts:
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: "2"
+            memory: 16Gi
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "4"
+            memory: 24Gi
+            nvidia.com/gpu: "1"
+      volumes:
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: quantize-workspace
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      restartPolicy: Never
+  backoffLimit: 2

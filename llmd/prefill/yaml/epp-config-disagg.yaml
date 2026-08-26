@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-d-sim-plugins
+  namespace: llm-d-lab
+data:
+  default-plugins.yaml: |
+    apiVersion: inference.networking.x-k8s.io/v1alpha1
+    kind: EndpointPickerConfig
+    plugins:
+    - type: queue-scorer
+    - type: kv-cache-utilization-scorer
+    - type: prefill-filter
+    - type: decode-filter
+    - type: max-score-picker
+    - type: always-disagg-pd-decider
+    - type: disagg-profile-handler
+      parameters:
+        deciders:
+          prefill: always-disagg-pd-decider
+    schedulingProfiles:
+    - name: prefill
+      plugins:
+      - pluginRef: prefill-filter
+      - pluginRef: max-score-picker
+      - pluginRef: queue-scorer
+        weight: 2
+      - pluginRef: kv-cache-utilization-scorer
+        weight: 1
+    - name: decode
+      plugins:
+      - pluginRef: decode-filter
+      - pluginRef: max-score-picker
+      - pluginRef: queue-scorer
+        weight: 2
+      - pluginRef: kv-cache-utilization-scorer
+        weight: 1

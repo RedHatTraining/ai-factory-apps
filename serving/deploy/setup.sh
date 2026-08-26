@@ -33,6 +33,8 @@ else
   echo "[INFO] Project $LAB_PROJECT already exists, skipping."
 fi
 
+oc label namespace $LAB_PROJECT opendatahub.io/dashboard=true --overwrite
+
 # ── 4. GPU hardware profile ───────────────────────────────────────────────────
 
 echo "[INFO] Applying GPU hardware profile..."
