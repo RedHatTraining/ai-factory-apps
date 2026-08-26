@@ -1,8 +1,0 @@
-{{- if and .Values.serverless.enabled (not (lookup "v1" "Namespace" "" .Values.serverless.namespace)) }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.serverless.namespace }}
-  labels:
-    {{- include "rhoai.labels" . | nindent 4 }}
-{{- end }}

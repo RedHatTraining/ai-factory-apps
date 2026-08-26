@@ -1,8 +1,0 @@
-{{- if and .Values.kuadrant.enabled (not (lookup "v1" "Namespace" "" .Values.kuadrant.namespace)) }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.kuadrant.namespace }}
-  labels:
-    {{- include "rhoai.labels" . | nindent 4 }}
-{{- end }}

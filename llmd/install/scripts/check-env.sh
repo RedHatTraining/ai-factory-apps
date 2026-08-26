@@ -281,7 +281,7 @@ if [[ "$MODE" == "pre" ]]; then
     FAIL=$((FAIL + LEFTOVERS))
     echo ""
     echo -e "     ${CYAN}Fix:${NC} Run the cleanup script to remove all leftover resources:"
-    echo -e "     ${BOLD}bash scripts/cluster-reset.sh${NC}"
+    echo -e "     ${BOLD}bash scripts/intro-reset.sh${NC}"
   fi
 else
   info "Check only valid for pre-install check"
@@ -339,7 +339,7 @@ if [[ -n "$RHOAI_CSV" ]]; then
   check_pass "RHOAI operator: $RHOAI_CSV_NAME"
 else
   check_fail "RHOAI operator CSV not found or not in Succeeded phase"
-  echo -e "     ${CYAN}Fix:${NC} Verify the Helm chart was installed: helm list -A | grep rhoai"
+  echo -e "     ${CYAN}Fix:${NC} RHOAI is installed by the cluster provisioning. Check: oc get csv -A | grep rhods"
 fi
 
 DSC_NAME=$(oc get datasciencecluster -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
@@ -353,7 +353,7 @@ if [[ -n "$DSC_NAME" ]]; then
   fi
 else
   check_fail "No DataScienceCluster found"
-  echo -e "     ${CYAN}Fix:${NC} oc apply -f helm-charts/rhoai-3.4/post-install/dsc.yaml"
+  echo -e "     ${CYAN}Fix:${NC} The DSC is created by the cluster provisioning. Check the RHOAI operator logs."
 fi
 
 ###############################################################################
@@ -478,8 +478,8 @@ if echo "$UWM_CONFIG" | grep -q "enableUserWorkload: true"; then
   check_pass "User Workload Monitoring is enabled"
 else
   check_fail "User Workload Monitoring is not enabled"
-  echo -e "     ${CYAN}Fix:${NC} The Helm chart should have created the ConfigMap. Check:"
-  echo -e "     oc get configmap cluster-monitoring-config -n openshift-monitoring -o yaml"
+  echo -e "     ${CYAN}Fix:${NC} Install the rhoai-operators Helm chart: helm install rhoai-operators helm-charts/rhoai-3.4/"
+  echo -e "     ${CYAN}Check:${NC} oc get configmap cluster-monitoring-config -n openshift-monitoring -o yaml"
 fi
 
 UWM_PODS=$(oc get pods -n openshift-user-workload-monitoring --no-headers 2>/dev/null | grep Running | wc -l | tr -d ' ')
