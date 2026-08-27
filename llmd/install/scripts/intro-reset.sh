@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 #
-# cluster-reset.sh — Reset the cluster to pre-lab state.
+# intro-reset.sh — Reset the cluster to pre-lab state for the intro exercise.
 #
-# This script removes resources created during the intro GE exercise:
+# This script removes only resources created during the intro GE exercise:
 #   - Simulator stack (Helm release llm-d-sim in llm-d-lab namespace)
 #   - llm-d-lab namespace
-#   - RHOAI DataScienceCluster and DataScienceClusterInitialization
-#   - RHOAI operators (Helm release rhoai-operators)
+#   - DSC patch (restores rawDeploymentServiceConfig and removes WVA)
+#   - RHOAI additional operators (Helm release rhoai-operators: Service Mesh 3,
+#     KEDA, User Workload Monitoring)
+#
+# This script does NOT touch:
+#   - Operators installed by agnosticv (NFD, Serverless, Authorino, Pipelines,
+#     RHOAI, NVIDIA GPU)
+#   - The DataScienceCluster or DataScienceClusterInitialization
+#   - Pre-existing platform resources (cert-manager, keycloak, etc.)
 #
 # After running this script, students can start fresh from the beginning
 # of the intro GE exercise.
@@ -14,7 +21,7 @@
 # Idempotent — safe to run at any point.
 #
 # Usage:
-#   bash scripts/cluster-reset.sh
+#   bash scripts/intro-reset.sh
 #
 
 set -euo pipefail
@@ -87,55 +94,50 @@ else
 fi
 
 ###############################################################################
-# 3 — Delete RHOAI CRs (while operators still run to process finalizers)
+# 3 — Revert DSC patch (remove WVA, restore rawDeploymentServiceConfig)
 ###############################################################################
 
-step "3. Delete RHOAI custom resources"
+step "3. Revert DSC patch"
 
-# DataScienceCluster (created by student via oc apply)
 if oc get dsc default-dsc &>/dev/null 2>&1; then
-  info "Deleting DataScienceCluster — this takes 1-2 minutes..."
-  oc delete dsc default-dsc --timeout=180s 2>/dev/null \
-    && ok "Deleted DataScienceCluster" \
-    || warn "DataScienceCluster deletion timed out"
+  oc patch datasciencecluster default-dsc --type=merge \
+    -p '{"spec":{"components":{"kserve":{"rawDeploymentServiceConfig":"Headless","wva":{"managementState":"Removed"}}}}}' \
+    2>/dev/null \
+    && ok "Reverted DSC (WVA Removed, rawDeploymentServiceConfig Headless)" \
+    || warn "DSC patch failed — check manually"
 else
-  ok "DataScienceCluster not found"
-fi
-
-# DataScienceClusterInitialization (auto-created by RHOAI operator)
-if oc get dsci default-dsci &>/dev/null 2>&1; then
-  oc delete dsci default-dsci --timeout=60s 2>/dev/null \
-    && ok "Deleted DataScienceClusterInitialization" \
-    || warn "DataScienceClusterInitialization deletion timed out"
-else
-  ok "DataScienceClusterInitialization not found"
+  ok "DataScienceCluster not found — nothing to revert"
 fi
 
 ###############################################################################
 # 4 — Helm uninstall rhoai-operators
 ###############################################################################
 
-step "4. Remove RHOAI operators"
+step "4. Remove additional operators (Service Mesh 3, KEDA, monitoring)"
 
 if helm status rhoai-operators -n default &>/dev/null 2>&1; then
-  info "Uninstalling rhoai-operators — this removes operator subscriptions..."
+  # Delete KEDA CRs before uninstalling the operator
+  if oc get ns openshift-keda &>/dev/null 2>&1; then
+    oc delete kedacontroller --all -n openshift-keda \
+      --ignore-not-found --timeout=30s 2>/dev/null || true
+    ok "Deleted KedaController CRs"
+  fi
+
+  info "Uninstalling rhoai-operators Helm release..."
   helm uninstall rhoai-operators -n default --timeout=120s 2>/dev/null \
-    && ok "Uninstalled rhoai-operators Helm release" \
+    && ok "Uninstalled rhoai-operators" \
     || warn "rhoai-operators uninstall had issues"
 else
   ok "rhoai-operators Helm release not found"
 fi
 
 ###############################################################################
-# 5 — Clean up auto-created operator resources
+# 5 — Clean up stale KEDA resources
 ###############################################################################
 
-step "5. Clean up auto-created operator resources"
+step "5. Clean up stale KEDA resources"
 
-info "Waiting for operator pods to stop..."
-sleep 10
-
-# KEDA: KedaController (auto-created by KEDA operator)
+# KedaController with stuck finalizers
 if oc get ns openshift-keda &>/dev/null 2>&1; then
   KEDA_CONTROLLERS=$(oc get kedacontroller -n openshift-keda --no-headers -o name 2>/dev/null || true)
   if [[ -n "$KEDA_CONTROLLERS" ]]; then
@@ -148,124 +150,43 @@ if oc get ns openshift-keda &>/dev/null 2>&1; then
     done
     ok "Deleted KedaController"
   else
-    ok "KedaController not found"
+    ok "No KedaController found"
   fi
 else
   ok "openshift-keda namespace not found"
 fi
 
-# Serverless: KnativeServing and KnativeEventing
-if oc api-resources --api-group=operator.knative.dev &>/dev/null 2>&1; then
-  oc delete knativeserving --all -A \
-    --ignore-not-found --timeout=60s 2>/dev/null || true
-  oc delete knativeeventing --all -A \
-    --ignore-not-found --timeout=60s 2>/dev/null || true
-  ok "Deleted Knative custom resources"
-else
-  ok "Knative CRDs not present"
-fi
+# Stale KEDA APIService
+STALE_API=$(oc get apiservice v1beta1.external.metrics.k8s.io \
+  -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null || true)
 
-# Pipelines: TektonConfig (must be cleaned after operator is gone)
-if oc api-resources --api-group=operator.tekton.dev &>/dev/null 2>&1; then
-  TEKTON_TYPES=(tektonconfig tektonpipeline tektontrigger tektonchain tektonaddon tektonresult)
-  FOUND_TEKTON=false
-
-  for res in "${TEKTON_TYPES[@]}"; do
-    ITEMS=$(oc get "$res" --no-headers -o name 2>/dev/null || true)
-    [[ -z "$ITEMS" ]] && continue
-    FOUND_TEKTON=true
-    for item in $ITEMS; do
-      if ! oc delete "$item" --timeout=10s 2>/dev/null; then
-        oc patch "$item" --type=json \
-          -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
-      fi
-    done
-  done
-
-  if [[ "$FOUND_TEKTON" == "true" ]]; then
-    ok "Cleaned up Tekton custom resources"
-  else
-    ok "No Tekton custom resources found"
-  fi
-else
-  ok "Tekton CRDs not present"
-fi
-
-# Delete stale KEDA APIService that blocks namespace deletion
-if oc get apiservice v1beta1.external.metrics.k8s.io &>/dev/null 2>&1; then
-  API_STATUS=$(oc get apiservice v1beta1.external.metrics.k8s.io \
-    -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null || true)
-
-  if [[ "$API_STATUS" == "False" ]]; then
-    oc delete apiservice v1beta1.external.metrics.k8s.io 2>/dev/null \
-      && ok "Deleted stale external.metrics APIService" \
-      || warn "Could not delete stale APIService"
-  else
-    ok "external.metrics APIService is healthy — leaving in place"
-  fi
+if [[ "$STALE_API" == "False" ]]; then
+  oc delete apiservice v1beta1.external.metrics.k8s.io 2>/dev/null \
+    && ok "Deleted stale external.metrics APIService" \
+    || warn "Could not delete stale APIService"
+elif [[ -n "$STALE_API" ]]; then
+  ok "external.metrics APIService is healthy — leaving in place"
 else
   ok "external.metrics APIService not found"
 fi
 
-###############################################################################
-# 6 — Delete operator namespaces
-###############################################################################
-
-step "6. Delete operator namespaces"
-
-# Only delete namespaces if they are empty (no running pods)
-# This prevents deleting pre-existing namespaces
-OPERATOR_NS=(
-  openshift-nfd
-  openshift-serverless
-  openshift-keda
-  redhat-ods-operator
-  redhat-ods-applications
-  redhat-ods-monitoring
-  knative-serving
-  knative-eventing
-  openshift-pipelines
-)
-
-for ns in "${OPERATOR_NS[@]}"; do
-  if ! oc get ns "$ns" &>/dev/null 2>&1; then
-    ok "$ns already deleted"
-    continue
-  fi
-
-  NS_PHASE=$(oc get ns "$ns" -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
-
-  if [[ "$NS_PHASE" == "Terminating" ]]; then
-    info "$ns is Terminating — waiting..."
-    oc wait --for=delete namespace/"$ns" --timeout=60s 2>/dev/null \
-      && ok "Deleted $ns" \
-      || warn "$ns still terminating"
-    continue
-  fi
-
-  # Check if namespace has running pods
-  RUNNING_PODS=$(oc get pods -n "$ns" --no-headers 2>/dev/null \
-    | grep -c Running || true)
-
-  if [[ "$RUNNING_PODS" -eq 0 ]]; then
-    oc delete ns "$ns" --timeout=60s 2>/dev/null \
-      && ok "Deleted $ns" \
-      || warn "$ns deletion timed out"
-  else
-    warn "$ns has $RUNNING_PODS running pod(s) — skipping (may be pre-existing)"
-  fi
-done
+# Wait for openshift-keda namespace to terminate
+if oc get ns openshift-keda &>/dev/null 2>&1; then
+  info "Waiting for openshift-keda namespace to terminate..."
+  oc wait --for=delete namespace/openshift-keda --timeout=60s 2>/dev/null \
+    && ok "openshift-keda namespace deleted" \
+    || warn "openshift-keda still terminating"
+fi
 
 ###############################################################################
-# 7 — Summary
+# 6 — Summary
 ###############################################################################
 
 step "Done"
 echo ""
 
 LINGERING=()
-ALL_NS=("${OPERATOR_NS[@]}" llm-d-lab)
-for ns in "${ALL_NS[@]}"; do
+for ns in llm-d-lab openshift-keda; do
   if oc get ns "$ns" &>/dev/null 2>&1; then
     LINGERING+=("$ns")
   fi
@@ -278,13 +199,12 @@ if [[ ${#LINGERING[@]} -gt 0 ]]; then
     echo -e "       $ns ($PHASE)"
   done
   echo ""
-  echo -e "${YELLOW}Namespaces marked 'Active' may be pre-existing (not course-created)."
-  echo -e "Namespaces marked 'Terminating' will finish on their own.${NC}"
+  echo -e "${YELLOW}Namespaces marked 'Terminating' will finish on their own.${NC}"
   echo ""
 else
   ok "All lab namespaces removed"
 fi
 
-echo -e "${GREEN}Cluster reset complete.${NC}"
+echo -e "${GREEN}Intro reset complete.${NC}"
 echo -e "You can now start fresh from the intro exercise."
 echo ""
