@@ -25,6 +25,10 @@ oc wait pod -n $REGISTRY_NS -l app=model-registry-lab \
 if ! oc project $LAB_PROJECT &>/dev/null; then
   echo "[INFO] Creating project $LAB_PROJECT..."
   oc new-project $LAB_PROJECT
+  oc label namespace $LAB_PROJECT \
+  opendatahub.io/dashboard=true \
+  modelmesh-enabled=false \
+  --overwrite
 else
   echo "[INFO] Project $LAB_PROJECT already exists, skipping."
 fi
