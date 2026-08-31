@@ -1,0 +1,30 @@
+model:
+  name: diabetes-predictor
+  version: "1.0.0"
+  description: "Baseline diabetes predictor model"
+
+training:
+  framework: TensorFlow/Keras
+  dataset_size: 184 samples (30% of full dataset)
+  epochs: 500
+  optimizer: Adam
+  learning_rate: 0.01
+
+performance:
+  accuracy: 0.66
+  precision_class_0: 0.81
+  precision_class_1: 0.45
+  recall_class_0: 0.66
+  recall_class_1: 0.64
+
+deployment:
+  format: ONNX
+  opset: 13
+  runtime: OpenVINO
+  input_shape: [None, 8]
+  output_shape: [None, 2]
+
+metadata:
+  created_by: Red Hat Training AI267 Training Script
+  purpose: Demonstrate model registry versioning
+  quality: baseline
