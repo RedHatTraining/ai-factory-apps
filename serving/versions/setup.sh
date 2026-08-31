@@ -34,13 +34,70 @@ fi
 echo "[INFO] Granting user admin role in $LAB_PROJECT..."
 oc adm policy add-role-to-user admin user -n $LAB_PROJECT
 
-# -- 4. Scale dashboard (resource savings) ------------------------------------
+# -- 4. Free cluster resources ------------------------------------------------
 
-echo "[INFO] Scaling rhods-dashboard to 1 replica..."
+echo "[INFO] Scaling down non-essential workloads..."
 oc scale deployment rhods-dashboard -n redhat-ods-applications \
   --replicas=1 2>/dev/null || true
+oc scale deployment -n redhat-ods-applications \
+  modelmesh-controller notebook-controller-deployment \
+  data-science-pipelines-operator-controller-manager \
+  feast-operator-controller-manager \
+  kubeflow-trainer-controller-manager \
+  kubeflow-training-operator \
+  kuberay-operator \
+  llama-stack-k8s-operator-controller-manager \
+  llmisvc-controller-manager \
+  trustyai-service-operator-controller-manager \
+  odh-notebook-controller-manager \
+  --replicas=0 2>/dev/null || true
 
-# -- 5. Build OCI model images on cluster -------------------------------------
+# -- 5. Reduce default hardware profile resources -----------------------------
+
+echo "[INFO] Patching default hardware profile for small models..."
+oc patch hardwareprofile default-profile -n redhat-ods-applications --type json -p '[
+  {"op":"replace","path":"/spec/identifiers/0/defaultCount","value":"500m"},
+  {"op":"replace","path":"/spec/identifiers/0/maxCount","value":"1"},
+  {"op":"replace","path":"/spec/identifiers/0/minCount","value":"100m"},
+  {"op":"replace","path":"/spec/identifiers/1/defaultCount","value":"1Gi"},
+  {"op":"replace","path":"/spec/identifiers/1/maxCount","value":"2Gi"},
+  {"op":"replace","path":"/spec/identifiers/1/minCount","value":"256Mi"}
+]' 2>/dev/null || true
+
+# -- 6. Create pull secret for internal registry -------------------------------
+
+echo "[INFO] Creating pull secret for internal registry..."
+REGISTRY_HOST="image-registry.openshift-image-registry.svc:5000"
+TOKEN=$(oc create token default -n $LAB_PROJECT --duration=24h)
+AUTH=$(echo -n "unused:${TOKEN}" | base64 -w0)
+DOCKERCFG="{\"auths\":{\"${REGISTRY_HOST}\":{\"auth\":\"${AUTH}\"}}}"
+
+oc apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+metadata:
+  name: internal-registry
+  namespace: $LAB_PROJECT
+  labels:
+    opendatahub.io/dashboard: "true"
+  annotations:
+    openshift.io/display-name: internal-registry
+    opendatahub.io/connection-type-ref: "oci-v1"
+stringData:
+  ACCESS_TYPE: '["Pull"]'
+  OCI_HOST: "${REGISTRY_HOST}"
+  .dockerconfigjson: '${DOCKERCFG}'
+EOF
+oc secrets link default internal-registry --for=pull -n $LAB_PROJECT
+
+# -- 7. OpenVINO Model Server runtime -----------------------------------------
+
+echo "[INFO] Creating OpenVINO Model Server runtime..."
+oc process -n redhat-ods-applications kserve-ovms | \
+  oc apply -n $LAB_PROJECT -f -
+
+# -- 8. Build OCI model images on cluster -------------------------------------
 
 echo "[INFO] Building OCI model images on cluster..."
 for version in v1 v2; do
