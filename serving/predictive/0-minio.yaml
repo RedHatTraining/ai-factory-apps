@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: minio
-          image: quay.io/minio/minio:latest
+          image: quay.io/rhtuser/minio:latest
           command:
             - minio
             - server

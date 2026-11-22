@@ -17,8 +17,5 @@ fi
 
 curl "${ENDPOINT}/v1/chat/completions" \
   -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen3-06b-v1",
-    "messages": [{"role": "user", "content": "${PROMPT}"}],
-    "max_tokens": 16
-  }'
+  -d "{ \"model\": \"qwen3-06b-v1\", \"messages\": [{\"role\": \"user\", \"content\": \"${PROMPT}\"}], \"max_tokens\": 16 }"
+

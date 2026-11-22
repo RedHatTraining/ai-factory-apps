@@ -29,4 +29,4 @@ curl -s "${ENDPOINT}/v1/chat/completions" \
     \"max_tokens\": 1200,
     \"temperature\": 0.7,
     \"top_p\": 0.9
-  }" | python -m json.tool
+  }" | jq
