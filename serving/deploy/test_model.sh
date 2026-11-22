@@ -13,16 +13,17 @@ PROMPT=$1
 if [ -z "${PROMPT:-}" ]; then
     echo "Usage: $0 <prompt>"
     exit 1
+else
+    echo "Using prompt: ${PROMPT}"
 fi
+
+echo curl -s "${ENDPOINT}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -d '{"model": "qwen3-06b-v1", "messages": [{"role": "user", "content": "'${PROMPT}'"}], "max_tokens": 200}'
 
 curl -s "${ENDPOINT}/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
-  -d '{
-    "model": "qwen3-06b-v1",
-    "messages": [
-      {"role": "user",
-       "content": "${PROMPT}"}
-    ],
-    "max_tokens": 200
-  }' | python -m json.tool
+  -d "{\"model\": \"qwen3-06b-v1\", \"messages\": [{\"role\": \"user\", \"content\": \"${PROMPT}\"}], \"max_tokens\": 200}" | jq
+

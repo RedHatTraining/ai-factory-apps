@@ -8,6 +8,8 @@ data:
     catalogs:
       - id: redhat_ai_models
         enabled: false
+      - id: other_models
+        enabled: false
       - id: redhat_ai_validated_models
         enabled: true
         includedModels:
